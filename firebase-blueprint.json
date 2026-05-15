@@ -1,0 +1,112 @@
+{
+  "entities": {
+    "Store": {
+      "title": "Store",
+      "description": "A store using the SaaS",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "specialty": { "type": "string", "maxLength": 100 },
+        "plan": { "type": "string", "enum": ["TRIAL", "MONTHLY"] },
+        "trialEndsAt": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" },
+        "systemPrompt": { "type": "string", "maxLength": 5000 },
+        "botActive": { "type": "boolean" },
+        "whatsappSessionStatus": { "type": "string", "enum": ["DISCONNECTED", "CONNECTED", "QR_READY"] }
+      },
+      "required": ["ownerId", "name", "specialty", "plan", "trialEndsAt", "createdAt", "updatedAt", "botActive", "whatsappSessionStatus"]
+    },
+    "Subscriber": {
+      "title": "Subscriber",
+      "description": "A subscriber to the store",
+      "type": "object",
+      "properties": {
+        "storeOwnerId": { "type": "string", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 100 },
+        "tags": { 
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["storeOwnerId", "phone", "createdAt", "updatedAt"]
+    },
+    "Article": {
+      "title": "Article",
+      "description": "A product or article inside the store catalog",
+      "type": "object",
+      "properties": {
+        "storeOwnerId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "price": { "type": "number" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["storeOwnerId", "name", "createdAt", "updatedAt"]
+    },
+    "Launch": {
+      "title": "Launch",
+      "description": "A campaign launch to subscribers",
+      "type": "object",
+      "properties": {
+        "storeOwnerId": { "type": "string", "maxLength": 128 },
+        "articleIds": { 
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "audienceTags": { 
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "status": { "type": "string", "enum": ["PENDING", "SENDING", "COMPLETED"] },
+        "sentCount": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["storeOwnerId", "articleIds", "status", "sentCount", "createdAt", "updatedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Chat log between bot and subscriber",
+      "type": "object",
+      "properties": {
+        "storeOwnerId": { "type": "string", "maxLength": 128 },
+        "subscriberId": { "type": "string", "maxLength": 128 },
+        "direction": { "type": "string", "enum": ["INBOUND", "OUTBOUND"] },
+        "text": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "number" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["storeOwnerId", "subscriberId", "direction", "text", "createdAt", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/clinics/{storeId}": {
+      "schema": { "$ref": "#/entities/Store" },
+      "description": "We keep the path name 'clinics' to not break existing data immediately, conceptually 'Store'."
+    },
+    "/clinics/{storeId}/subscribers/{subscriberId}": {
+      "schema": { "$ref": "#/entities/Subscriber" },
+      "description": "Store subscribers (previously patients)"
+    },
+    "/clinics/{storeId}/articles/{articleId}": {
+      "schema": { "$ref": "#/entities/Article" },
+      "description": "Store catalog articles"
+    },
+    "/clinics/{storeId}/launches/{launchId}": {
+      "schema": { "$ref": "#/entities/Launch" },
+      "description": "Store campaign launches"
+    },
+    "/clinics/{storeId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Message logs"
+    }
+  }
+}

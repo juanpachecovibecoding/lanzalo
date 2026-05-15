@@ -1,0 +1,1 @@
+import { useState, useEffect } from 'react'; export default function BookingPortal() { return <div>Portal</div>; }

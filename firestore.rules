@@ -1,0 +1,146 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isAdmin() { return request.auth != null && request.auth.token.email == 'portadordelsello@gmail.com'; }
+    function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidClinic(data) {
+      return data.keys().hasAll(['ownerId', 'name', 'specialty', 'plan', 'createdAt', 'updatedAt', 'botActive', 'whatsappSessionStatus']) &&
+             data.keys().size() >= 8 && data.keys().size() <= 15 &&
+             data.ownerId is string && data.ownerId.size() <= 128 && (data.ownerId == request.auth.uid || isAdmin()) &&
+             data.name is string && data.name.size() <= 100 &&
+             data.specialty is string && data.specialty.size() <= 100 &&
+             data.plan in ['GRATIS', 'BASICO', 'PREMIUM', 'TRIAL', 'MONTHLY'] &&
+             (!('trialEndsAt' in data) || data.trialEndsAt is number) &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp &&
+             data.botActive is bool &&
+             data.whatsappSessionStatus in ['DISCONNECTED', 'CONNECTED', 'QR_READY'] &&
+             (!('systemPrompt' in data) || (data.systemPrompt is string && data.systemPrompt.size() <= 5000)) &&
+             (!('messagesUsed' in data) || data.messagesUsed is number) &&
+             (!('whatsappNumber' in data) || (data.whatsappNumber is string && data.whatsappNumber.size() <= 20)) &&
+             (!('blockedDays' in data) || data.blockedDays is list) &&
+             (!('contactEmail' in data) || (data.contactEmail is string && data.contactEmail.size() <= 100)) &&
+             (!('logoUrl' in data) || (data.logoUrl is string && data.logoUrl.size() <= 1000));
+    }
+
+    function isValidPatient(data) {
+      return data.keys().hasAll(['clinicOwnerId', 'phone', 'dni', 'createdAt', 'updatedAt']) &&
+             data.keys().size() >= 5 && data.keys().size() <= 15 &&
+             data.clinicOwnerId is string && data.clinicOwnerId.size() <= 128 && (data.clinicOwnerId == request.auth.uid || !isSignedIn()) &&
+             data.phone is string && data.phone.size() <= 20 &&
+             data.dni is string && data.dni.size() <= 20 &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp &&
+             (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 100)) &&
+             (!('address' in data) || (data.address is string && data.address.size() <= 200)) &&
+             (!('healthInsurance' in data) || (data.healthInsurance is string && data.healthInsurance.size() <= 100));
+    }
+
+    function isValidAppointment(data) {
+      return data.keys().hasAll(['clinicOwnerId', 'patientId', 'patientDni', 'date', 'time', 'status', 'createdAt', 'updatedAt']) &&
+             data.keys().size() == 8 &&
+             data.clinicOwnerId is string && data.clinicOwnerId.size() <= 128 && (data.clinicOwnerId == request.auth.uid || !isSignedIn()) &&
+             data.patientId is string && data.patientId.size() <= 128 &&
+             data.patientDni is string && data.patientDni.size() <= 20 &&
+             data.date is string && data.date.size() <= 50 &&
+             data.time is string && data.time.size() <= 20 &&
+             data.status in ['SCHEDULED', 'CONFIRMED', 'CANCELLED', 'COMPLETED'] &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['clinicOwnerId', 'patientId', 'direction', 'text', 'createdAt', 'timestamp']) &&
+             data.keys().size() == 6 &&
+             data.clinicOwnerId is string && data.clinicOwnerId.size() <= 128 && data.clinicOwnerId == request.auth.uid &&
+             data.patientId is string && data.patientId.size() <= 128 &&
+             data.direction in ['INBOUND', 'OUTBOUND'] &&
+             data.text is string && data.text.size() <= 2000 &&
+             data.createdAt is timestamp &&
+             data.timestamp is number;
+    }
+
+    match /clinics/{clinicId} {
+      allow get: if isValidId(clinicId); 
+      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      
+      allow create: if isSignedIn() && isValidId(clinicId) && request.auth.uid == clinicId &&
+                       isValidClinic(incoming()) &&
+                       incoming().createdAt == request.time &&
+                       incoming().updatedAt == request.time;
+                       
+      allow update: if isSignedIn() && isValidId(clinicId) && (clinicId == request.auth.uid || isAdmin()) &&
+                       isValidClinic(incoming()) &&
+                       incoming().ownerId == existing().ownerId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt == request.time &&
+                       (
+                         (incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'name', 'specialty', 'plan', 'trialEndsAt', 'botActive', 'whatsappSessionStatus', 'systemPrompt', 'messagesUsed', 'whatsappNumber', 'blockedDays', 'contactEmail', 'logoUrl'])) || isAdmin()
+                       );
+                       
+      allow delete: if isSignedIn() && isValidId(clinicId) && (clinicId == request.auth.uid || isAdmin());
+
+      match /patients/{patientId} {
+         allow get: if isValidId(patientId);
+         allow list: if (request.auth != null && clinicId == request.auth.uid) || request.query.limit <= 1;
+         
+         allow create: if (isValidPatient(incoming()) && (request.auth == null || clinicId == request.auth.uid)) &&
+                          isValidId(patientId) &&
+                          incoming().createdAt == request.time &&
+                          incoming().updatedAt == request.time;
+                          
+         allow update: if isSignedIn() && isValidId(patientId) && clinicId == request.auth.uid &&
+                          isValidPatient(incoming()) &&
+                          incoming().clinicOwnerId == existing().clinicOwnerId &&
+                          incoming().createdAt == existing().createdAt &&
+                           incoming().updatedAt == request.time &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'phone', 'name', 'email', 'dni', 'address', 'healthInsurance']);
+                          
+         allow delete: if isSignedIn() && isValidId(patientId) && clinicId == request.auth.uid;
+      }
+
+      match /appointments/{appointmentId} {
+         allow get: if isValidId(appointmentId);
+         allow list: if true;
+         
+         allow create: if isValidAppointment(incoming()) && 
+                          isValidId(appointmentId) &&
+                          incoming().createdAt == request.time &&
+                          incoming().updatedAt == request.time;
+                          
+         allow update: if (isValidAppointment(incoming()) && (clinicId == request.auth.uid || !isSignedIn())) &&
+                          incoming().clinicOwnerId == existing().clinicOwnerId &&
+                          incoming().patientId == existing().patientId &&
+                          incoming().createdAt == existing().createdAt &&
+                          incoming().updatedAt == request.time &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'date', 'time', 'status']);
+                          
+         allow delete: if isSignedIn() && isValidId(appointmentId) && clinicId == request.auth.uid;
+      }
+
+      match /messages/{messageId} {
+         allow get: if isSignedIn() && isValidId(messageId) && clinicId == request.auth.uid;
+         allow list: if isSignedIn() && clinicId == request.auth.uid;
+         
+         allow create: if isSignedIn() && isValidId(messageId) && clinicId == request.auth.uid &&
+                          isValidMessage(incoming()) &&
+                          incoming().direction == 'OUTBOUND' &&
+                          exists(/databases/$(database)/documents/clinics/$(clinicId)/patients/$(incoming().patientId)) &&
+                          incoming().createdAt == request.time;
+                          
+         allow update: if false;
+         allow delete: if false;
+      }
+    }
+  }
+}

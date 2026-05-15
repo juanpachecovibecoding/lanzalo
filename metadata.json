@@ -1,0 +1,8 @@
+{
+  "name": "Lanzalo - 1.0",
+  "description": "WhatsApp automation SaaS for medical clinics to manage appointments and auto-reply using AI.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": []
+}
