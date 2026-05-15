@@ -62,26 +62,37 @@ export default function LaunchesTab({ clinicId }) {
     try {
       const subs = getFilteredSubscribers();
       
+      const selectedArts = articles.filter(a => selectedArticles.includes(a.id));
+      const launchMessages = subs.map(sub => {
+        const text = `¡Hola ${sub.name}! Tenemos novedades para ti en nuestro catálogo:\n\n` +
+          selectedArts.map(a => `🔹 ${a.name}\n${a.description}\nPrecio: $${a.price || 0}`).join('\n\n') +
+          `\n\n¡Escríbenos si te interesa o tienes alguna duda!`;
+        return { phone: sub.phone, text };
+      });
+
+      const res = await fetch('/api/whatsapp/send-launch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, launchMessages })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Error en la petición');
+      }
+
       // Save Launch record
       await addDoc(collection(db, 'clinics', clinicId, 'launches'), {
         storeOwnerId: clinicId,
         articleIds: selectedArticles,
         audienceTags: selectedTags,
-        status: 'COMPLETED', // simulate completion
+        status: 'COMPLETED',
         sentCount: subs.length,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
 
-      // Simulate sending logic
-      let count = 0;
-      for (const sub of subs) {
-        // Sleep slightly to simulate sending
-        await new Promise(r => setTimeout(r, 600));
-        count++;
-        setLaunchedCount(count);
-      }
-      
+      setLaunchedCount(subs.length);
       setStep(4);
     } catch (e) {
       console.error(e);

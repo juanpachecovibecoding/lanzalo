@@ -404,6 +404,46 @@ app.post('/api/whatsapp/send-reminders', async (req, res) => {
   })();
 });
 
+app.post('/api/whatsapp/send-launch', async (req, res) => {
+  const { clinicId, launchMessages } = req.body;
+  if (!clinicId || !launchMessages || !Array.isArray(launchMessages)) {
+    return res.status(400).json({ error: 'Solicitud inválida' });
+  }
+
+  const sock = waClients.get(clinicId);
+  if (!sock) return res.status(400).json({ error: 'WhatsApp no está conectado' });
+  
+  res.json({ success: true, count: launchMessages.length, message: 'Enviando campaña en segundo plano...' });
+
+  // Background task
+  (async () => {
+    for (const msg of launchMessages) {
+      try {
+        if (!msg.phone) continue;
+        const cleanNumber = msg.phone.replace(/\D/g, '');
+        
+        const waCheck = await sock.onWhatsApp(cleanNumber);
+        
+        if (!waCheck || waCheck.length === 0 || !waCheck[0].exists) {
+           console.log(`Number ${cleanNumber} is not registered on WhatsApp (or format is incorrect).`);
+           continue;
+        }
+
+        const jid = waCheck[0].jid;
+        
+        await sock.sendMessage(jid, { text: msg.text });
+        console.log(`Launch sent to ${jid}`);
+        
+        // Wait 15 seconds between sends
+        await new Promise(r => setTimeout(r, 15000));
+      } catch (err) {
+        console.error(`Error sending launch to ${msg.phone}:`, err);
+      }
+    }
+    console.log(`Finished sending ${launchMessages.length} launch messages for ${clinicId}`);
+  })();
+});
+
 // Mercado Pago Routes
 app.post('/api/mercadopago/create-preference', async (req, res) => {
   try {
