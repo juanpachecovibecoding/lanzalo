@@ -66,10 +66,13 @@ export default function BookingPortal() {
     setRegistering(true);
     try {
       await addDoc(collection(db, 'clinics', clinicId!, 'patients'), {
+        clinicOwnerId: clinicId,
+        dni: '',
         name: form.name.trim(),
         phone: form.phone.trim(),
         tags: form.tags,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
       setRegistered(true);
     } catch (e) {

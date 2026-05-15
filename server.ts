@@ -8,8 +8,8 @@ import path from 'path';
 import fs from 'fs';
 import { Boom } from '@hapi/boom';
 import pino from 'pino';
-import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, doc, collection, updateDoc, increment, serverTimestamp, query, where, getDocs, limit as limitQuery } from 'firebase/firestore';
+import { initializeApp, App } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { MercadoPagoConfig, Preference, PreApprovalPlan, PreApproval } from 'mercadopago';
 
 // Initialize MP Client (Lazy creation logic inside endpoints where it's used so it doesn't crash without token)
@@ -27,12 +27,14 @@ function getMPClient() {
 // Initialize Firebase (Lazy)
 const firebaseAppConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'firebase-applet-config.json'), 'utf8'));
 
-let adminApp: FirebaseApp | null = null;
+let adminApp: App | null = null;
 let firestoreDb: any | null = null;
 
 function getFirebaseAdmin() {
   if (!adminApp) {
-    adminApp = initializeApp(firebaseAppConfig);
+    adminApp = initializeApp({
+      projectId: firebaseAppConfig.projectId,
+    });
   }
   return adminApp;
 }
@@ -235,9 +237,8 @@ async function startWhatsAppBot(clinicId: string, host: string) {
               let toolResultStr = "Error al consultar la base de datos.";
               
               if (typeof phoneArg === 'string') {
-                const patientsRef = collection(getDb(), 'clinics', clinicId, 'patients');
-                const q = query(patientsRef, where('phone', '==', phoneArg), limitQuery(1));
-                const patientSnap = await getDocs(q);
+                const patientsRef = getDb().collection('clinics').doc(clinicId).collection('patients');
+                const patientSnap = await patientsRef.where('phone', '==', phoneArg).limit(1).get();
                 
                 if (patientSnap.empty) {
                   toolResultStr = `Base de datos: El usuario con teléfono ${phoneArg} NO está en el sistema. Debe registrarse en el portal.`;
@@ -271,10 +272,10 @@ async function startWhatsAppBot(clinicId: string, host: string) {
           await sock.sendMessage(remoteJid, { text: replyText });
           
           // Increment messagesUsed in DB
-          const clinicRef = doc(getDb(), 'clinics', clinicId);
-          await updateDoc(clinicRef, { 
-            messagesUsed: increment(1),
-            updatedAt: serverTimestamp() 
+          const clinicRef = getDb().collection('clinics').doc(clinicId);
+          await clinicRef.update({ 
+            messagesUsed: FieldValue.increment(1),
+            updatedAt: FieldValue.serverTimestamp() 
           });
 
           clinicConfig.messagesUsed += 1;
