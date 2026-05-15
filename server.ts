@@ -8,8 +8,8 @@ import path from 'path';
 import fs from 'fs';
 import { Boom } from '@hapi/boom';
 import pino from 'pino';
-import { initializeApp, App } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getFirestore, doc, collection, updateDoc, increment, serverTimestamp, query, where, getDocs, limit as limitQuery } from 'firebase/firestore';
 import { MercadoPagoConfig, Preference, PreApprovalPlan, PreApproval } from 'mercadopago';
 
 // Initialize MP Client (Lazy creation logic inside endpoints where it's used so it doesn't crash without token)
@@ -24,17 +24,15 @@ function getMPClient() {
   return mpClient;
 }
 
-// Initialize Firebase Admin (Lazy)
+// Initialize Firebase (Lazy)
 const firebaseAppConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'firebase-applet-config.json'), 'utf8'));
 
-let adminApp: App | null = null;
+let adminApp: FirebaseApp | null = null;
 let firestoreDb: any | null = null;
 
 function getFirebaseAdmin() {
   if (!adminApp) {
-    adminApp = initializeApp({
-      projectId: firebaseAppConfig.projectId,
-    });
+    adminApp = initializeApp(firebaseAppConfig);
   }
   return adminApp;
 }
@@ -65,7 +63,7 @@ function getSystemConfig() {
       BASICO: 4999,
       PREMIUM: 14999
     },
-    voiceAgentPrompt: 'Eres un experto de soporte técnico de Turnely. Tu objetivo es asistir a administradores de clínicas. Responde en español de forma cortés, técnica y conversacional.'
+    voiceAgentPrompt: 'Eres un experto de soporte técnico de Lanzalo. Tu objetivo es asistir a administradores de Lanzadors. Responde en español de forma cortés, técnica y conversacional.'
   };
 
   if (fs.existsSync(configPath)) {
@@ -194,91 +192,37 @@ async function startWhatsAppBot(clinicId: string, host: string) {
 
       if (ai) {
         try {
-          // Check if message is a booking confirmation link text
-          // Example: "Hola! Soy Juan Pérez (DNI: 1234). He reservado un turno para el 2026-05-24 a las 17:30h."
-          const bookingMatch = textMessage.match(/He reservado un turno para el (\d{4}-\d{2}-\d{2}) a las (\d{2}:\d{2})h/);
-          const dniMatch = textMessage.match(/\(DNI: (.*?)\)/);
-
-          if (bookingMatch && dniMatch) {
-            const date = bookingMatch[1];
-            const time = bookingMatch[2];
-            const dni = dniMatch[1];
-
-            console.log(`Potential booking confirmation detected for DNI ${dni} on ${date} at ${time}`);
-
-            // Find the patient first
-            const patientsRef = getDb().collection('clinics').doc(clinicId).collection('patients');
-            const patientSnap = await patientsRef.where('dni', '==', dni).limit(1).get();
-
-            if (!patientSnap.empty) {
-              const patientId = patientSnap.docs[0].id;
-              const appointmentsRef = getDb().collection('clinics').doc(clinicId).collection('appointments');
-              
-              // Find or create the appointment
-              const appSnap = await appointmentsRef
-                .where('patientId', '==', patientId)
-                .where('date', '==', date)
-                .where('time', '==', time)
-                .limit(1)
-                .get();
-
-              if (!appSnap.empty) {
-                await appSnap.docs[0].ref.update({ status: 'CONFIRMED', updatedAt: FieldValue.serverTimestamp() });
-              } else {
-                // Create if it doesn't exist (though it should have been created by the portal or we can create it now)
-                await appointmentsRef.add({
-                  clinicOwnerId: clinicId,
-                  patientId,
-                  patientDni: dni,
-                  date,
-                  time,
-                  status: 'CONFIRMED',
-                  createdAt: FieldValue.serverTimestamp(),
-                  updatedAt: FieldValue.serverTimestamp()
-                });
-              }
-              
-              await sock.sendMessage(remoteJid, { text: `¡Perfecto! Su turno para el ${date} a las ${time}h ha sido CONFIRMADO. ¡Lo esperamos!` });
-              
-              const clinicRef = getDb().collection('clinics').doc(clinicId);
-              await clinicRef.update({ 
-                messagesUsed: FieldValue.increment(1),
-                updatedAt: FieldValue.serverTimestamp() 
-              });
-              
-              continue; // Skip AI generation for this message as it's handled
-            }
-          }
+          // No special confirmation logic, just let AI handle it
 
           const systemPrompt = clinicConfig.systemPrompt || "Eres un asistente virtual médico. Responde en español, sé sumamente cordial.";
 
           await sock.presenceSubscribe(remoteJid);
           await sock.sendPresenceUpdate('composing', remoteJid);
           
-          const bookingUrl = `https://${host}/reservar/${clinicId}`;
-          const consultarEstadoPaciente: FunctionDeclaration = {
-            name: "consultarEstadoPaciente",
-            description: "Consulta si el paciente está registrado y si tiene un turno pendiente usando su DNI. Úsalo siempre que el paciente te dé su DNI.",
+          const bookingUrl = `https://${host}/catalogo/${clinicId}`;
+          const consultarSuscripcion: FunctionDeclaration = {
+            name: "consultarSuscripcion",
+            description: "Consulta si el usuario está registrado o suscripto usando su número de teléfono. Úsalo siempre que el usuario te dé su teléfono.",
             parameters: {
               type: Type.OBJECT,
               properties: {
-                dni: {
+                telefono: {
                   type: Type.STRING,
-                  description: "El documento de identidad o DNI del paciente."
+                  description: "El número de teléfono o WhatsApp del usuario."
                 }
               },
-              required: ["dni"]
+              required: ["telefono"]
             }
           };
 
           const generationConfig = {
-            systemInstruction: `Eres el agente inteligente de una clínica médica. El nombre de la clínica es "${clinicConfig.name}". Solo tienes tareas de soporte, agendamiento y respuestas a dudas generales. Sigue estas instrucciones: ${systemPrompt}. Cuando un paciente se comunique para pedir un turno, PRIMERO debes pedirle su DNI (Documento de Identidad) obligatoriamente para asegurarte de que no tenga ya un turno asignado y se haya olvidado. ¡IMPORTANTE: NO LE MUESTRES EL ENLACE DE LA AGENDA Y NO LE PERMITAS AGENDAR HASTA TENER SU DNI! Una vez que te entregue el DNI, usa la herramienta consultarEstadoPaciente. Si la herramienta indica que YA TIENE turno, dale la información del mismo. Si la herramienta indica que NO TIENE turno o no está registrado, ENTONCES dale amablemente el siguiente enlace para que pueda agendarlo: ${bookingUrl}\n\nSi el paciente te indica que desea CANCELAR un turno, debes informarle que puede hacerlo ingresando a la agenda con su DNI para gestionar la cancelación de forma autónoma. Entrégale el link: ${bookingUrl}\n\nIMPORTANTE PARA ENLACES: Al enviar el link, envíalo como texto crudo, SIN utilizar formato Markdown para enlaces (NO uses [texto](URL)). WhatsApp requiere que los links se envíen completos y sin envolver en otros caracteres para que sean clickeables.`,
-            tools: [{ functionDeclarations: [consultarEstadoPaciente] }]
+            systemInstruction: `Eres el agente inteligente de una marca o tienda. El nombre del Lanzador/Tienda es "${clinicConfig.name}". Tus tareas son soporte, ventas y suscripciones. Sigue estas instrucciones: ${systemPrompt}. Cuando un usuario pregunte por el catálogo, ofertas o quiera suscribirse para recibir lanzamientos, PRIMERO debes pedirle su número de teléfono obligatoriamente para ver si ya está registrado. ¡IMPORTANTE: NO LE MUESTRES EL ENLACE DEL CATÁLOGO HASTA TENER SU TELÉFONO! Una vez que te entregue el teléfono, usa la herramienta consultarSuscripcion. Si la herramienta indica que YA ESTÁ SUSCRIPTO, agradécele y coméntale que le llegarán nuestras novedades. Si indica que NO ESTÁ SUSCRIPTO, ENTONCES dale amablemente el siguiente enlace para que pueda suscribirse y ver el catálogo: ${bookingUrl}\n\nIMPORTANTE PARA ENLACES: Al enviar el link, envíalo como texto crudo (NO uses [texto](URL)). WhatsApp requiere que los links se envíen completos y sin envolver en otros caracteres.`,
+            tools: [{ functionDeclarations: [consultarSuscripcion] }]
           };
 
           const response1 = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Mensaje del paciente: "${textMessage}"`,
+            contents: `Mensaje del usuario: "${textMessage}"`,
             config: generationConfig
           });
 
@@ -286,39 +230,20 @@ async function startWhatsAppBot(clinicId: string, host: string) {
 
           if (response1.functionCalls && response1.functionCalls.length > 0) {
             const call = response1.functionCalls[0];
-            if (call.name === 'consultarEstadoPaciente') {
-              const dniArg = call.args.dni;
+            if (call.name === 'consultarSuscripcion') {
+              const phoneArg = call.args.telefono;
               let toolResultStr = "Error al consultar la base de datos.";
               
-              if (typeof dniArg === 'string') {
-                const patientsRef = getDb().collection('clinics').doc(clinicId).collection('patients');
-                const patientSnap = await patientsRef.where('dni', '==', dniArg).limit(1).get();
+              if (typeof phoneArg === 'string') {
+                const patientsRef = collection(getDb(), 'clinics', clinicId, 'patients');
+                const q = query(patientsRef, where('phone', '==', phoneArg), limitQuery(1));
+                const patientSnap = await getDocs(q);
                 
                 if (patientSnap.empty) {
-                  toolResultStr = `Base de datos: El paciente con DNI ${dniArg} NO está en el sistema. Debe registrarse y sacar turno en el portal.`;
+                  toolResultStr = `Base de datos: El usuario con teléfono ${phoneArg} NO está en el sistema. Debe registrarse en el portal.`;
                 } else {
-                  const patientId = patientSnap.docs[0].id;
                   const patientData = patientSnap.docs[0].data();
-                  const appointmentsRef = getDb().collection('clinics').doc(clinicId).collection('appointments');
-                  // Consultar turnos futuros
-                  const d = new Date();
-                  const year = d.getFullYear();
-                  const month = String(d.getMonth() + 1).padStart(2, '0');
-                  const day = String(d.getDate()).padStart(2, '0');
-                  const todayStr = `${year}-${month}-${day}`;
-                  const apptSnap = await appointmentsRef
-                    .where('patientId', '==', patientId)
-                    .where('date', '>=', todayStr)
-                    .get();
-                  
-                  const validAppts = apptSnap.docs.filter((d: any) => d.data().status !== 'CANCELLED');
-                  if (validAppts.length > 0) {
-                    const sortedAppts = validAppts.sort((a: any, b: any) => a.data().date.localeCompare(b.data().date));
-                    const appt = sortedAppts[0].data();
-                    toolResultStr = `Base de datos: El paciente ${patientData.name || 'registrado'} tiene un turno CONFIRMADO el ${appt.date} a las ${appt.time}h.`;
-                  } else {
-                     toolResultStr = `Base de datos: El paciente ${patientData.name || 'registrado'} está registrado en el sistema pero NO tiene turnos pendientes. Ofrécele el portal de turnos para agendar.`;
-                  }
+                  toolResultStr = `Base de datos: El usuario ${patientData.name || 'registrado'} YA está registrado. Etiquetas/Intereses: ${(patientData.tags || []).join(', ') || 'Ninguna'}`;
                 }
               }
 
@@ -327,9 +252,9 @@ async function startWhatsAppBot(clinicId: string, host: string) {
                 const response2 = await ai.models.generateContent({
                   model: 'gemini-2.5-flash',
                   contents: [
-                    { role: 'user', parts: [{ text: `Mensaje del paciente: "${textMessage}"` }] },
+                    { role: 'user', parts: [{ text: `Mensaje del usuario: "${textMessage}"` }] },
                     previousContent,
-                    { role: 'user', parts: [{ functionResponse: { name: 'consultarEstadoPaciente', response: { result: toolResultStr } } }] }
+                    { role: 'user', parts: [{ functionResponse: { name: 'consultarSuscripcion', response: { result: toolResultStr } } }] }
                   ],
                   config: generationConfig
                 });
@@ -346,10 +271,10 @@ async function startWhatsAppBot(clinicId: string, host: string) {
           await sock.sendMessage(remoteJid, { text: replyText });
           
           // Increment messagesUsed in DB
-          const clinicRef = getDb().collection('clinics').doc(clinicId);
-          await clinicRef.update({ 
-            messagesUsed: FieldValue.increment(1),
-            updatedAt: FieldValue.serverTimestamp() 
+          const clinicRef = doc(getDb(), 'clinics', clinicId);
+          await updateDoc(clinicRef, { 
+            messagesUsed: increment(1),
+            updatedAt: serverTimestamp() 
           });
 
           clinicConfig.messagesUsed += 1;
@@ -412,7 +337,7 @@ app.post('/api/whatsapp/config', (req, res) => {
   waConfigs.set(clinicId, {
      botActive: !!botActive,
      systemPrompt: systemPrompt || '',
-     name: name || 'Clínica',
+     name: name || 'Lanzador',
      plan: plan || 'GRATIS',
      messagesUsed: newMessagesUsed
   });

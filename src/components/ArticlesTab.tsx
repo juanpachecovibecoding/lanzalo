@@ -24,6 +24,10 @@ export default function ArticlesTab({ clinicId }) {
 
   const saveArticle = async () => {
     if (!form.name.trim()) return;
+    if (!clinicId) {
+      console.error('clinicId is missing');
+      return;
+    }
     setSaving(true);
     try {
       const tagsArray = form.tags.split(',').map(t => t.trim()).filter(t => t);

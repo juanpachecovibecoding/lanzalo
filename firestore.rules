@@ -59,6 +59,20 @@ service cloud.firestore {
              data.updatedAt is timestamp;
     }
 
+    
+    function isValidArticle(data) {
+      return data.keys().hasAll(['storeOwnerId', 'name', 'description', 'price', 'imageUrl', 'tags', 'createdAt', 'updatedAt']) &&
+             data.keys().size() == 8 &&
+             data.storeOwnerId is string && data.storeOwnerId.size() <= 128 && data.storeOwnerId == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.description is string && data.description.size() <= 1000 &&
+             data.price is number &&
+             data.imageUrl is string && data.imageUrl.size() <= 1000 &&
+             data.tags is list && data.tags.size() <= 20 &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
     function isValidMessage(data) {
       return data.keys().hasAll(['clinicOwnerId', 'patientId', 'direction', 'text', 'createdAt', 'timestamp']) &&
              data.keys().size() == 6 &&
@@ -79,13 +93,18 @@ service cloud.firestore {
                        incoming().createdAt == request.time &&
                        incoming().updatedAt == request.time;
                        
-      allow update: if isSignedIn() && isValidId(clinicId) && (clinicId == request.auth.uid || isAdmin()) &&
+      allow update: if (isSignedIn() && isValidId(clinicId) && (clinicId == request.auth.uid || isAdmin()) &&
                        isValidClinic(incoming()) &&
                        incoming().ownerId == existing().ownerId &&
                        incoming().createdAt == existing().createdAt &&
                        incoming().updatedAt == request.time &&
                        (
                          (incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'name', 'specialty', 'plan', 'trialEndsAt', 'botActive', 'whatsappSessionStatus', 'systemPrompt', 'messagesUsed', 'whatsappNumber', 'blockedDays', 'contactEmail', 'logoUrl'])) || isAdmin()
+                       )) || (
+                         isValidId(clinicId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'messagesUsed']) &&
+                         incoming().messagesUsed == existing().messagesUsed + 1 &&
+                         incoming().updatedAt == request.time
                        );
                        
       allow delete: if isSignedIn() && isValidId(clinicId) && (clinicId == request.auth.uid || isAdmin());
@@ -126,6 +145,26 @@ service cloud.firestore {
                           incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'date', 'time', 'status']);
                           
          allow delete: if isSignedIn() && isValidId(appointmentId) && clinicId == request.auth.uid;
+      }
+
+      
+      match /articles/{articleId} {
+         allow get: if true;
+         allow list: if true;
+         
+         allow create: if isSignedIn() && isValidId(articleId) && clinicId == request.auth.uid &&
+                          isValidArticle(incoming()) &&
+                          incoming().createdAt == request.time &&
+                          incoming().updatedAt == request.time;
+                          
+         allow update: if isSignedIn() && isValidId(articleId) && clinicId == request.auth.uid &&
+                          isValidArticle(incoming()) &&
+                          incoming().storeOwnerId == existing().storeOwnerId &&
+                          incoming().createdAt == existing().createdAt &&
+                          incoming().updatedAt == request.time &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'name', 'description', 'price', 'imageUrl', 'tags']);
+                          
+         allow delete: if isSignedIn() && isValidId(articleId) && clinicId == request.auth.uid;
       }
 
       match /messages/{messageId} {

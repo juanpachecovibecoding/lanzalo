@@ -1,1 +1,252 @@
-import { useState, useEffect } from 'react'; export default function BookingPortal() { return <div>Portal</div>; }
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { doc, getDoc, collection, getDocs, addDoc, query, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
+import { Rocket, CheckCircle2, Tag, ChevronDown, User, Phone, Image as ImageIcon } from 'lucide-react';
+
+export default function BookingPortal() {
+  const { clinicId } = useParams<{ clinicId: string }>();
+  const [store, setStore] = useState<any>(null);
+  const [articles, setArticles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Registration form
+  const [form, setForm] = useState({ name: '', phone: '', tags: [] as string[] });
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [registering, setRegistering] = useState(false);
+  const [registered, setRegistered] = useState(false);
+
+  useEffect(() => {
+    if (clinicId) {
+      loadData();
+    }
+  }, [clinicId]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      // Load store info
+      const storeDoc = await getDoc(doc(db, 'clinics', clinicId!));
+      if (storeDoc.exists()) {
+        setStore({ id: storeDoc.id, ...storeDoc.data() });
+      }
+
+      // Load articles
+      const q = query(collection(db, 'clinics', clinicId!, 'articles'));
+      const snapshot = await getDocs(q);
+      const parts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setArticles(parts);
+      
+      // Extract unique tags from articles to let user subscribe
+      const allTags = new Set<string>();
+      parts.forEach(a => {
+         if (a.tags && Array.isArray(a.tags)) {
+            a.tags.forEach((t: string) => allTags.add(t));
+         }
+      });
+      setAvailableTags(Array.from(allTags));
+      
+    } catch (e) {
+      console.error(e);
+    }
+    setLoading(false);
+  };
+
+  const toggleTag = (tag: string) => {
+    if (form.tags.includes(tag)) {
+       setForm({ ...form, tags: form.tags.filter(t => t !== tag) });
+    } else {
+       setForm({ ...form, tags: [...form.tags, tag] });
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.phone.trim()) return;
+    setRegistering(true);
+    try {
+      await addDoc(collection(db, 'clinics', clinicId!, 'patients'), {
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        tags: form.tags,
+        createdAt: serverTimestamp(),
+      });
+      setRegistered(true);
+    } catch (e) {
+      console.error(e);
+      alert('Error al registrarse. Por favor intenta de nuevo.');
+    }
+    setRegistering(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-slate-500 font-medium animate-pulse">Cargando catálogo...</div>
+      </div>
+    );
+  }
+
+  if (!store && !loading) {
+     return (
+       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+         <div className="text-slate-500 font-medium">Tienda no encontrada.</div>
+       </div>
+     );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans pb-20">
+      {/* Header */}
+      <div className="bg-indigo-600 text-white pt-16 pb-24 px-6 relative overflow-hidden">
+         <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+         <div className="max-w-4xl mx-auto relative z-10 text-center">
+            {store?.logoUrl ? (
+               <img src={store.logoUrl} alt="Logo" className="w-24 h-24 rounded-2xl mx-auto shadow-xl border-4 border-white object-cover mb-4" />
+            ) : (
+               <div className="w-20 h-20 bg-white rounded-2xl mx-auto shadow-xl flex items-center justify-center text-indigo-600 font-bold text-3xl mb-4">
+                  {store?.name?.charAt(0) || 'T'}
+               </div>
+            )}
+            <h1 className="text-3xl font-extrabold tracking-tight mb-2">{store?.name || 'Catálogo de la Tienda'}</h1>
+            <p className="text-indigo-100 max-w-lg mx-auto">{store?.specialty || 'Descubre nuestros artículos y regístrate para que Lanzalo te avise primero sobre nuevas ofertas.'}</p>
+         </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-6 -mt-12 relative z-20">
+         {registered ? (
+            <div className="bg-white rounded-3xl shadow-xl p-10 text-center border border-slate-100 animate-in zoom-in duration-300">
+               <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                 <CheckCircle2 className="w-10 h-10" />
+               </div>
+               <h2 className="text-2xl font-bold text-slate-800 mb-2">¡Suscripción Exitosa!</h2>
+               <p className="text-slate-500 mb-8 max-w-sm mx-auto">Te has registrado en nuestra lista. Estaremos enviándote las novedades por WhatsApp a <b>{form.phone}</b> pronto.</p>
+               
+               <button onClick={() => setRegistered(false)} className="mx-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-8 rounded-xl transition-colors">
+                  Volver al Catálogo
+               </button>
+            </div>
+         ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+               
+               {/* Registration Form */}
+               <div className="lg:col-span-2">
+                  <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-6 sticky top-6">
+                     <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                           <Rocket className="w-5 h-5" />
+                        </div>
+                        <h3 className="font-bold text-slate-900 text-lg leading-tight">Suscríbete a las Novedades</h3>
+                     </div>
+                     <form onSubmit={handleRegister} className="space-y-4">
+                        <div>
+                           <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-2">Tu Nombre</label>
+                           <div className="relative">
+                              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                              <input 
+                                required type="text" placeholder="Ej: Carla"
+                                value={form.name} onChange={e => setForm({...form, name: e.target.value})}
+                                className="w-full pl-11 pr-4 py-3 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all font-medium"
+                              />
+                           </div>
+                        </div>
+                        <div>
+                           <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-2">Tu WhatsApp</label>
+                           <div className="relative">
+                              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                              <input 
+                                required type="tel" placeholder="Ej: +54 9 11..."
+                                value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
+                                className="w-full pl-11 pr-4 py-3 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all font-medium"
+                              />
+                           </div>
+                        </div>
+                        
+                        {availableTags.length > 0 && (
+                          <div className="pt-2">
+                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-2">¿Qué te interesa?</label>
+                             <div className="flex flex-wrap gap-2">
+                               {availableTags.map(tag => (
+                                  <button 
+                                     type="button" key={tag} onClick={() => toggleTag(tag)}
+                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${form.tags.includes(tag) ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                  >
+                                     {tag}
+                                  </button>
+                               ))}
+                             </div>
+                          </div>
+                        )}
+
+                        <button 
+                          disabled={registering || !form.name || !form.phone} 
+                          type="submit" 
+                          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-2xl transition-all shadow-md mt-6 disabled:opacity-50"
+                        >
+                           {registering ? 'Registrando...' : 'Recibir Novedades'}
+                        </button>
+                     </form>
+                  </div>
+               </div>
+
+               {/* Articles / Catalog */}
+               <div className="lg:col-span-3">
+                  <div className="flex items-center justify-between mb-6">
+                     <h2 className="text-xl font-bold text-slate-800">Nuestro Catálogo</h2>
+                     <span className="text-sm font-medium text-slate-500 bg-slate-200/50 px-3 py-1 rounded-full">{articles.length} artículos</span>
+                  </div>
+
+                  {articles.length === 0 ? (
+                     <div className="bg-white rounded-3xl p-10 text-center border border-slate-100">
+                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                           <ImageIcon className="w-8 h-8" />
+                        </div>
+                        <h3 className="font-bold text-slate-600">No hay artículos disponibles</h3>
+                        <p className="text-sm text-slate-400">La tienda está actualizando su stock.</p>
+                     </div>
+                  ) : (
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {articles.map(a => (
+                           <div key={a.id} className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all">
+                              {a.imageUrl ? (
+                                <div className="h-40 bg-slate-100 overflow-hidden relative">
+                                   <img src={a.imageUrl} alt={a.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                   {a.price > 0 && (
+                                     <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-lg font-bold text-slate-900 text-sm shadow-sm">
+                                        ${a.price}
+                                     </div>
+                                   )}
+                                </div>
+                              ) : (
+                                <div className="h-32 bg-slate-50 flex items-center justify-center text-slate-300 relative">
+                                   <ImageIcon className="w-8 h-8" />
+                                   {a.price > 0 && (
+                                     <div className="absolute bottom-3 left-3 bg-white px-2.5 py-1 rounded-lg font-bold text-slate-900 text-sm border border-slate-100 shadow-sm">
+                                        ${a.price}
+                                     </div>
+                                   )}
+                                </div>
+                              )}
+                              <div className="p-5 flex-1 flex flex-col">
+                                 <h4 className="font-bold text-slate-900 leading-tight mb-1">{a.name}</h4>
+                                 <p className="text-sm text-slate-500 line-clamp-2 mb-4 flex-1">{a.description}</p>
+                                 {a.tags && a.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-auto pt-4 border-t border-slate-50">
+                                       {a.tags.map((t: string) => (
+                                          <span key={t} className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">{t}</span>
+                                       ))}
+                                    </div>
+                                 )}
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                  )}
+               </div>
+
+            </div>
+         )}
+      </div>
+    </div>
+  );
+}

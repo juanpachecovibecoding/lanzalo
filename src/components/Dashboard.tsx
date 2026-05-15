@@ -76,7 +76,7 @@ export default function Dashboard({ user }: { user: User }) {
         const patient = patients.find(p => p.id === app.patientId);
         return {
           phone: patient?.phone || '',
-          patientName: patient?.name || 'paciente',
+          patientName: patient?.name || 'suscriptor',
           date: app.date,
           time: app.time
         };
@@ -107,7 +107,7 @@ export default function Dashboard({ user }: { user: User }) {
     }
   };
   const [supportMessages, setSupportMessages] = useState<{ role: 'user' | 'assistant', text: string }[]>([
-    { role: 'assistant', text: '¡Hola! Soy tu asistente de soporte entrenado sobre el funcionamiento de Turnely. ¿En qué te puedo ayudar hoy?' }
+    { role: 'assistant', text: '¡Hola! Soy tu asistente de soporte entrenado sobre el funcionamiento de Lanzalo. ¿En qué te puedo ayudar hoy?' }
   ]);
   const [supportInput, setSupportInput] = useState('');
   const [isSupportGenerating, setIsSupportGenerating] = useState(false);
@@ -213,7 +213,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
   const [savingAdmin, setSavingAdmin] = useState(false);
   const [systemLimits, setSystemLimits] = useState({ GRATIS: 100, BASICO: 500, PREMIUM: 1000 });
   const [systemPrices, setSystemPrices] = useState({ BASICO: 4999, PREMIUM: 14999 });
-  const [systemVoiceAgentPrompt, setSystemVoiceAgentPrompt] = useState('Eres un experto de soporte técnico de Turnely...');
+  const [systemVoiceAgentPrompt, setSystemVoiceAgentPrompt] = useState('Eres un experto de soporte técnico de Lanzalo...');
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
@@ -451,7 +451,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
            });
        } else {
            const patient = patients.find(p => p.id === apptForm.patientId);
-           if (!patient) { alert("Seleccione un paciente valido"); setSavingAppt(false); return; }
+           if (!patient) { alert("Seleccione un suscriptor valido"); setSavingAppt(false); return; }
            await addDoc(collection(db, 'clinics', user.uid, 'appointments'), {
                clinicOwnerId: user.uid,
                patientId: patient.id,
@@ -544,7 +544,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
        setPatientForm(null);
      } catch(err: any) {
        console.error("Error saving patient:", err);
-       alert("Error guardando el paciente: " + err.message);
+       alert("Error guardando el suscriptor: " + err.message);
      }
      setSavingPatient(false);
   };
@@ -592,7 +592,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
       setEditingClinic(null);
     } catch (error) {
       console.error("Error updating clinic:", error);
-      alert("Error al actualizar la clínica.");
+      alert("Error al actualizar la Lanzador.");
     }
   };
 
@@ -607,9 +607,9 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
   }, []);
 
   useEffect(() => {
-     const pendingPlan = localStorage.getItem('turnely_selected_plan');
+     const pendingPlan = localStorage.getItem('lanzalo_selected_plan');
      if (pendingPlan && pricesLoaded) {
-        localStorage.removeItem('turnely_selected_plan');
+        localStorage.removeItem('lanzalo_selected_plan');
         startCheckout(pendingPlan, systemPrices);
      }
   }, [pricesLoaded, systemPrices]);
@@ -648,7 +648,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
       (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.data();
-          setClinic(data);
+          setClinic({ id: snapshot.id, ...data });
           if (!systemPrompt && data.systemPrompt) {
             setSystemPrompt(data.systemPrompt);
           }
@@ -842,7 +842,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
       const pricesToUse = overridePrices || systemPrices;
       
       const payload = {
-        reason: `Suscripción ${plan} - Turnely`,
+        reason: `Suscripción ${plan} - Lanzalo`,
         auto_recurring: {
           frequency: 1,
           frequency_type: "months",
@@ -906,7 +906,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
         model: 'gemini-3-flash-preview',
         contents: historyMsg,
         config: {
-          systemInstruction: systemPrompt || clinic?.systemPrompt || defaultPrompt,
+          systemInstruction: (systemPrompt || clinic?.systemPrompt || defaultPrompt) + `\n\nIMPORTANTE: Si el usuario quiere ver el catálogo completo o suscribirse para recibir novedades y ofertas, debes enviarle este enlace: ${window.location.origin}/catalogo/${clinic?.id}`,
           temperature: 0.5
         }
       });
@@ -1131,7 +1131,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                                     <div className="max-w-xs mx-auto">
                                        <UserIcon className="w-12 h-12 text-slate-200 mx-auto mb-4" />
                                        <p className="text-slate-900 font-bold mb-1">No hay suscriptores registrados</p>
-                                       <p className="text-slate-500 text-sm">Los suscriptores aparecerán aquí cuando se registren a través de WhatsApp o el portal de reservas.</p>
+                                       <p className="text-slate-500 text-sm">Los suscriptores aparecerán aquí cuando se registren a través de WhatsApp o tu catálogo web.</p><div className="mt-4 flex gap-3 justify-center"><a href={"/catalogo/" + user.uid} target="_blank" className="text-indigo-600 hover:text-indigo-700 font-bold text-sm bg-indigo-50 px-4 py-2 rounded-lg flex items-center gap-2">Ver Catálogo Público</a><button onClick={() => { navigator.clipboard.writeText(window.location.origin + "/catalogo/" + user.uid); alert("Link copiado"); }} className="text-slate-600 hover:text-slate-700 font-bold text-sm bg-slate-100 px-4 py-2 rounded-lg flex items-center gap-2">Copiar Link</button></div>
                                     </div>
                                  </td>
                               </tr>
@@ -1250,7 +1250,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                   </button>
                 </div>
                 <div className="p-8">
-                  <p className="text-slate-600 text-center">¿Estás seguro que deseas eliminar este paciente? Sus turnos y mensajes podrían quedar huérfanos.</p>
+                  <p className="text-slate-600 text-center">¿Estás seguro que deseas eliminar este suscriptor? Sus turnos y mensajes podrían quedar huérfanos.</p>
                 </div>
                 <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
                   <button 
@@ -1599,7 +1599,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                      </div>
                      <p className="text-slate-800 font-medium text-lg">
                         {currentPlan === 'GRATIS' && 'Automatización básica. Actualiza para desbloquear más mensajes.'}
-                        {currentPlan === 'BASICO' && 'Ideal para clínicas en crecimiento.'}
+                        {currentPlan === 'BASICO' && 'Ideal para Lanzadors en crecimiento.'}
                         {currentPlan === 'PREMIUM' && 'Mensajes de alto volumen y soporte prioritario.'}
                      </p>
                   </div>
@@ -1640,7 +1640,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                        <Bot className="w-6 h-6 mr-3 text-indigo-600" />
                        Asistente de Soporte
                      </h3>
-                     <p className="text-sm text-slate-500 mt-1">Conoce más sobre Turnely. Pregunta lo que necesites.</p>
+                     <p className="text-sm text-slate-500 mt-1">Conoce más sobre Lanzalo. Pregunta lo que necesites.</p>
                    </div>
                 </div>
 
@@ -1707,7 +1707,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                        Soporte Humano 24/7
                      </h3>
                      <p className="text-slate-600 mb-8 font-medium">
-                       Desbloquea el Soporte Humano 24/7 y recibe ayuda y acompañamiento de una persona de nuestro equipo técnico para configurar y optimizar tu clínica.
+                       Desbloquea el Soporte Humano 24/7 y recibe ayuda y acompañamiento de una persona de nuestro equipo técnico para configurar y optimizar tu Lanzador.
                      </p>
                      
                      <button
@@ -1728,7 +1728,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                        )}
                      </button>
                      <p className="text-xs text-slate-400 mt-4">
-                       Al suscribirte pasas directamente al Plan Premium de Turnely.
+                       Al suscribirte pasas directamente al Plan Premium de Lanzalo.
                      </p>
                    </div>
                 </div>
@@ -1849,7 +1849,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                   <div>
                     <h3 className="text-xl font-bold text-slate-900">Gestión de Lanzadores</h3>
                     <p className="text-sm text-slate-500 mt-1">
-                      {allClinics.length} clínicas registradas en el sistema.
+                      {allClinics.length} Lanzadors registradas en el sistema.
                     </p>
                   </div>
                   <div className="relative w-full md:w-72">
@@ -1957,8 +1957,8 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                         <tr>
                           <td colSpan={4} className="px-8 py-20 text-center">
                             <Bot className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                            <p className="text-slate-900 font-bold">No hay clínicas registradas</p>
-                            <p className="text-slate-500 text-sm">Las clínicas de los usuarios aparecerán aquí.</p>
+                            <p className="text-slate-900 font-bold">No hay Lanzadors registradas</p>
+                            <p className="text-slate-500 text-sm">Las Lanzadors de los usuarios aparecerán aquí.</p>
                           </td>
                         </tr>
                       )}
@@ -1981,11 +1981,11 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                     </div>
                     <div className="p-8 space-y-5">
                       <p className="text-slate-700 text-sm">
-                        ¿Estás seguro de que deseas eliminar permanentemente la clínica <strong className="text-slate-900">{clinicToDelete.name || 'Sin nombre'}</strong>?
+                        ¿Estás seguro de que deseas eliminar permanentemente la Lanzador <strong className="text-slate-900">{clinicToDelete.name || 'Sin nombre'}</strong>?
                       </p>
                       <div className="bg-red-50 p-4 rounded-2xl border border-red-100 mt-4">
                         <p className="text-[12px] text-red-700 font-medium">
-                          Esta acción <strong>no se puede deshacer</strong> y borrará toda la información, turnos y suscriptores asociadas a esta clínica de forma irreversible.
+                          Esta acción <strong>no se puede deshacer</strong> y borrará toda la información, turnos y suscriptores asociadas a esta Lanzador de forma irreversible.
                         </p>
                       </div>
                     </div>
@@ -2173,7 +2173,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
             <div className="p-6 md:p-8 text-center relative overflow-hidden bg-gradient-to-br from-indigo-500 to-sky-600 border-b border-white/10 shrink-0">
                <div className="relative z-10">
                  <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Mejora tu Suscripción</h2>
-                 <p className="text-indigo-100 text-xs md:text-sm">Desbloquea el poder total de Turnely AI con Mercado Pago 🔒 Checkout Pro</p>
+                 <p className="text-indigo-100 text-xs md:text-sm">Desbloquea el poder total de Lanzalo AI con Mercado Pago 🔒 Checkout Pro</p>
                </div>
             </div>
             

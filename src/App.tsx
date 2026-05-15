@@ -29,7 +29,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/reservar/:clinicId" element={<BookingPortal />} />
+        <Route path="/catalogo/:clinicId" element={<BookingPortal />} />
         <Route path="/privacidad" element={<PrivacyPolicy />} />
         <Route path="/terminos" element={<TermsOfService />} />
         <Route path="/*" element={<MainApp />} />
