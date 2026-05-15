@@ -434,8 +434,9 @@ app.post('/api/whatsapp/send-launch', async (req, res) => {
         await sock.sendMessage(jid, { text: msg.text });
         console.log(`Launch sent to ${jid}`);
         
-        // Wait 15 seconds between sends
-        await new Promise(r => setTimeout(r, 15000));
+        // Wait random time between 30 and 120 seconds to be more natural
+        const delay = Math.floor(Math.random() * (120000 - 30000 + 1)) + 30000;
+        await new Promise(r => setTimeout(r, delay));
       } catch (err) {
         console.error(`Error sending launch to ${msg.phone}:`, err);
       }
