@@ -178,7 +178,9 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
   const [savingSettings, setSavingSettings] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState({ name: '', specialty: '', whatsappNumber: '', contactEmail: '', logoUrl: '' });
+  const [profileForm, setProfileForm] = useState({ name: '', specialty: '', whatsappNumber: '', contactEmail: '' });
+  const [isEditingAppearance, setIsEditingAppearance] = useState(false);
+  const [appearanceForm, setAppearanceForm] = useState({ coverUrl: '', logoUrl: '', theme: 'default' });
 
   // Sync Patients
   useEffect(() => {
@@ -822,10 +824,25 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
         specialty: profileForm.specialty,
         whatsappNumber: profileForm.whatsappNumber,
         contactEmail: profileForm.contactEmail,
-        logoUrl: profileForm.logoUrl,
         updatedAt: serverTimestamp()
       });
       setIsEditingProfile(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveAppearance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clinic || currentPlan !== 'PREMIUM') return;
+    try {
+      await updateDoc(doc(db, 'clinics', user.uid), {
+        coverUrl: appearanceForm.coverUrl,
+        logoUrl: appearanceForm.logoUrl,
+        theme: appearanceForm.theme,
+        updatedAt: serverTimestamp()
+      });
+      setIsEditingAppearance(false);
     } catch (err) {
       console.error(err);
     }
@@ -1497,8 +1514,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                               name: clinic?.name || '',
                               specialty: clinic?.specialty || '',
                               whatsappNumber: clinic?.whatsappNumber || '',
-                              contactEmail: clinic?.contactEmail || user.email || '',
-                              logoUrl: clinic?.logoUrl || ''
+                              contactEmail: clinic?.contactEmail || user.email || ''
                             });
                             setIsEditingProfile(true);
                           }
@@ -1544,10 +1560,6 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Número de WhatsApp</label>
                         <input type="text" value={profileForm.whatsappNumber} onChange={e => setProfileForm({...profileForm, whatsappNumber: e.target.value})} className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:bg-white" />
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">URL de Imagen de Perfil (Logo)</label>
-                        <input type="url" value={profileForm.logoUrl} onChange={e => setProfileForm({...profileForm, logoUrl: e.target.value})} placeholder="https://ejemplo.com/logo.png" className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:bg-white" />
-                      </div>
                       <div className="flex gap-3 justify-end pt-4">
                         <button type="button" onClick={() => setIsEditingProfile(false)} className="px-5 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">Cancelar</button>
                         <button type="submit" className="px-5 py-2 bg-slate-900 text-white font-bold rounded-xl shadow-md hover:bg-slate-800 transition-colors">Guardar Cambios</button>
@@ -1571,12 +1583,93 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                           <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Número de WhatsApp</p>
                           <p className="text-slate-800 font-medium">{clinic?.whatsappNumber || 'No configurado'}</p>
                        </div>
+                    </div>
+                  )}
+               </div>
+
+               <div className="bg-white border border-slate-100 rounded-[2rem] p-8 md:p-10 shadow-xl shadow-slate-200/40 relative overflow-hidden">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold text-slate-900">Apariencia</h3>
+                    {!isEditingAppearance && (
+                      <button 
+                        onClick={() => {
+                          if (currentPlan !== 'PREMIUM') {
+                            setShowUpgradeModal(true);
+                          } else {
+                            setAppearanceForm({
+                              coverUrl: clinic?.coverUrl || '',
+                              logoUrl: clinic?.logoUrl || '',
+                              theme: clinic?.theme || 'default',
+                            });
+                            setIsEditingAppearance(true);
+                          }
+                        }}
+                        className={`group relative text-sm px-4 py-2 rounded-xl font-bold transition-all flex items-center justify-center min-w-[100px] overflow-hidden ${currentPlan !== 'PREMIUM' ? 'bg-emerald-100 text-emerald-700 hover:bg-amber-100 hover:text-amber-800' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                      >
+                        {currentPlan !== 'PREMIUM' ? (
+                           <>
+                             <span className="flex items-center gap-1.5 group-hover:hidden">
+                               <Settings className="w-4 h-4" />
+                               Personalizar catálogo
+                             </span>
+                             <span className="hidden items-center gap-1.5 group-hover:flex">
+                               <Lock className="w-4 h-4" />
+                               Solo Premium
+                             </span>
+                           </>
+                        ) : (
+                           <span className="flex items-center gap-1.5">
+                             <Settings className="w-4 h-4" />
+                             Personalizar catálogo
+                           </span>
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingAppearance ? (
+                    <form onSubmit={handleSaveAppearance} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">URL de Imagen de Portada</label>
+                        <input type="url" value={appearanceForm.coverUrl} onChange={e => setAppearanceForm({...appearanceForm, coverUrl: e.target.value})} placeholder="https://ejemplo.com/portada.png" className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">URL de Imagen del Logo</label>
+                        <input type="url" value={appearanceForm.logoUrl} onChange={e => setAppearanceForm({...appearanceForm, logoUrl: e.target.value})} placeholder="https://ejemplo.com/logo.png" className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Tema de Colores</label>
+                        <select value={appearanceForm.theme} onChange={e => setAppearanceForm({...appearanceForm, theme: e.target.value})} className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:bg-white text-slate-800 font-medium">
+                           <option value="default">Por defecto (Índigo & Pizarra)</option>
+                           <option value="ocean">Océano (Azul & Esmeralda)</option>
+                           <option value="sunset">Atardecer (Naranja & Rosa)</option>
+                        </select>
+                      </div>
+                      <div className="flex gap-3 justify-end pt-4">
+                        <button type="button" onClick={() => setIsEditingAppearance(false)} className="px-5 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">Cancelar</button>
+                        <button type="submit" className="px-5 py-2 bg-slate-900 text-white font-bold rounded-xl shadow-md hover:bg-slate-800 transition-colors">Guardar Cambios</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="space-y-4">
+                       {clinic?.coverUrl && (
+                         <div>
+                            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-2">Portada</p>
+                            <img src={clinic.coverUrl} alt="Portada" className="w-full max-h-32 object-cover rounded-xl border border-slate-200" />
+                         </div>
+                       )}
                        {clinic?.logoUrl && (
                          <div>
                             <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-2">Logo</p>
                             <img src={clinic.logoUrl} alt="Logo" className="w-16 h-16 rounded-xl object-cover border border-slate-200" />
                          </div>
                        )}
+                       <div>
+                          <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Tema</p>
+                          <p className="text-slate-800 font-medium">
+                            {clinic?.theme === 'ocean' ? 'Océano (Azul & Esmeralda)' : clinic?.theme === 'sunset' ? 'Atardecer (Naranja & Rosa)' : 'Por defecto (Índigo & Pizarra)'}
+                          </p>
+                       </div>
                     </div>
                   )}
                </div>

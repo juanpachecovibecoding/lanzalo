@@ -98,21 +98,56 @@ export default function BookingPortal() {
      );
   }
 
+  const themeColors = {
+    default: {
+      bg: 'bg-indigo-600',
+      text: 'text-indigo-600',
+      textLight: 'text-indigo-100',
+      focus: 'focus:ring-indigo-600',
+      borderLight: 'border-indigo-200',
+      bgLight: 'bg-indigo-50',
+      textDark: 'text-indigo-700'
+    },
+    ocean: {
+      bg: 'bg-sky-600',
+      text: 'text-sky-600',
+      textLight: 'text-sky-100',
+      focus: 'focus:ring-sky-600',
+      borderLight: 'border-sky-200',
+      bgLight: 'bg-sky-50',
+      textDark: 'text-sky-700'
+    },
+    sunset: {
+      bg: 'bg-orange-600',
+      text: 'text-orange-600',
+      textLight: 'text-orange-100',
+      focus: 'focus:ring-orange-600',
+      borderLight: 'border-orange-200',
+      bgLight: 'bg-orange-50',
+      textDark: 'text-orange-700'
+    }
+  };
+  const th = themeColors[(store?.theme as keyof typeof themeColors) || 'default'] || themeColors.default;
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-20">
       {/* Header */}
-      <div className="bg-indigo-600 text-white pt-16 pb-24 px-6 relative overflow-hidden">
-         <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+      <div className={`${th.bg} text-white pt-16 pb-24 px-6 relative overflow-hidden`}>
+         {store?.coverUrl ? (
+            <img src={store.coverUrl} alt="Portada" className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay" />
+         ) : (
+            <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+         )}
          <div className="max-w-4xl mx-auto relative z-10 text-center">
             {store?.logoUrl ? (
                <img src={store.logoUrl} alt="Logo" className="w-24 h-24 rounded-2xl mx-auto shadow-xl border-4 border-white object-cover mb-4" />
             ) : (
-               <div className="w-20 h-20 bg-white rounded-2xl mx-auto shadow-xl flex items-center justify-center text-indigo-600 font-bold text-3xl mb-4">
+               <div className={`w-20 h-20 bg-white rounded-2xl mx-auto shadow-xl flex items-center justify-center ${th.text} font-bold text-3xl mb-4`}>
                   {store?.name?.charAt(0) || 'T'}
                </div>
             )}
             <h1 className="text-3xl font-extrabold tracking-tight mb-2">{store?.name || 'Catálogo de la Tienda'}</h1>
-            <p className="text-indigo-100 max-w-lg mx-auto">{store?.specialty || 'Descubre nuestros artículos y regístrate para que Lanzalo te avise primero sobre nuevas ofertas.'}</p>
+            <p className={`${th.textLight} max-w-lg mx-auto`}>{store?.specialty || 'Descubre nuestros artículos y regístrate para que Lanzalo te avise primero sobre nuevas ofertas.'}</p>
          </div>
       </div>
 
@@ -136,7 +171,7 @@ export default function BookingPortal() {
                <div className="lg:col-span-2">
                   <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-6 sticky top-6">
                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <div className={`w-10 h-10 rounded-xl ${th.bgLight} flex items-center justify-center ${th.text}`}>
                            <Rocket className="w-5 h-5" />
                         </div>
                         <h3 className="font-bold text-slate-900 text-lg leading-tight">Suscríbete a las Novedades</h3>
@@ -149,7 +184,7 @@ export default function BookingPortal() {
                               <input 
                                 required type="text" placeholder="Ej: Carla"
                                 value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                                className="w-full pl-11 pr-4 py-3 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all font-medium"
+                                className={`w-full pl-11 pr-4 py-3 bg-slate-50 border-0 rounded-2xl focus:ring-2 ${th.focus} focus:bg-white transition-all font-medium`}
                               />
                            </div>
                         </div>
@@ -160,7 +195,7 @@ export default function BookingPortal() {
                                  <select
                                     value={form.countryCode}
                                     onChange={e => setForm({...form, countryCode: e.target.value})}
-                                    className="w-full pl-3 pr-8 py-3 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all font-medium appearance-none text-slate-700"
+                                    className={`w-full pl-3 pr-8 py-3 bg-slate-50 border-0 rounded-2xl focus:ring-2 ${th.focus} focus:bg-white transition-all font-medium appearance-none text-slate-700`}
                                  >
                                     <option value="+54">🇦🇷 +54</option>
                                     <option value="+591">🇧🇴 +591</option>
@@ -189,7 +224,7 @@ export default function BookingPortal() {
                                  <input 
                                    required type="tel" placeholder="9 11 1234..."
                                    value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
-                                   className="w-full pl-10 pr-4 py-3 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all font-medium"
+                                   className={`w-full pl-10 pr-4 py-3 bg-slate-50 border-0 rounded-2xl focus:ring-2 ${th.focus} focus:bg-white transition-all font-medium`}
                                  />
                               </div>
                            </div>
@@ -202,7 +237,7 @@ export default function BookingPortal() {
                                {availableTags.map(tag => (
                                   <button 
                                      type="button" key={tag} onClick={() => toggleTag(tag)}
-                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${form.tags.includes(tag) ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${form.tags.includes(tag) ? `${th.bgLight} ${th.borderLight} ${th.textDark}` : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
                                   >
                                      {tag}
                                   </button>
