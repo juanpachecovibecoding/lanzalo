@@ -5,7 +5,7 @@ import TermsOfService from './components/TermsOfService';
 import { onAuthStateChanged, User, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { Activity, ShieldCheck, HeartPulse, QrCode, Phone, MessageSquare, X, Calendar, Star, CheckCircle, ArrowRight, HelpCircle, ChevronDown, Rocket } from 'lucide-react';
+import { Activity, ShieldCheck, Dumbbell, QrCode, Phone, MessageSquare, X, Calendar, Star, CheckCircle, ArrowRight, HelpCircle, ChevronDown, Rocket } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import BookingPortal from './components/BookingPortal';
 
@@ -190,7 +190,7 @@ function MainApp() {
                        {/* WA Header */}
                        <div className="bg-emerald-600 px-4 py-3 pb-4 pt-10 flex items-center gap-3 text-white shrink-0 shadow-sm relative z-10">
                           <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
-                             <HeartPulse className="w-6 h-6 text-white" />
+                             <Dumbbell className="w-6 h-6 text-white" />
                           </div>
                           <div className="flex-1">
                              <h4 className="font-bold text-[15px] leading-tight">Accesorios Deportivos</h4>
