@@ -11,7 +11,7 @@ export default function BookingPortal() {
   const [loading, setLoading] = useState(true);
   
   // Registration form
-  const [form, setForm] = useState({ name: '', phone: '', tags: [] as string[] });
+  const [form, setForm] = useState({ name: '', countryCode: '+54', phone: '', tags: [] as string[] });
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [registering, setRegistering] = useState(false);
   const [registered, setRegistered] = useState(false);
@@ -69,7 +69,7 @@ export default function BookingPortal() {
         clinicOwnerId: clinicId,
         dni: '',
         name: form.name.trim(),
-        phone: form.phone.trim(),
+        phone: `${form.countryCode}${form.phone.trim()}`,
         tags: form.tags,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -123,7 +123,7 @@ export default function BookingPortal() {
                  <CheckCircle2 className="w-10 h-10" />
                </div>
                <h2 className="text-2xl font-bold text-slate-800 mb-2">¡Suscripción Exitosa!</h2>
-               <p className="text-slate-500 mb-8 max-w-sm mx-auto">Te has registrado en nuestra lista. Estaremos enviándote las novedades por WhatsApp a <b>{form.phone}</b> pronto.</p>
+               <p className="text-slate-500 mb-8 max-w-sm mx-auto">Te has registrado en nuestra lista. Estaremos enviándote las novedades por WhatsApp a <b>{form.countryCode} {form.phone}</b> pronto.</p>
                
                <button onClick={() => setRegistered(false)} className="mx-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-8 rounded-xl transition-colors">
                   Volver al Catálogo
@@ -155,13 +155,43 @@ export default function BookingPortal() {
                         </div>
                         <div>
                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-2">Tu WhatsApp</label>
-                           <div className="relative">
-                              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                              <input 
-                                required type="tel" placeholder="Ej: +54 9 11..."
-                                value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
-                                className="w-full pl-11 pr-4 py-3 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all font-medium"
-                              />
+                           <div className="flex gap-2">
+                              <div className="relative w-2/5">
+                                 <select
+                                    value={form.countryCode}
+                                    onChange={e => setForm({...form, countryCode: e.target.value})}
+                                    className="w-full pl-3 pr-8 py-3 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all font-medium appearance-none text-slate-700"
+                                 >
+                                    <option value="+54">🇦🇷 +54</option>
+                                    <option value="+591">🇧🇴 +591</option>
+                                    <option value="+55">🇧🇷 +55</option>
+                                    <option value="+56">🇨🇱 +56</option>
+                                    <option value="+57">🇨🇴 +57</option>
+                                    <option value="+506">🇨🇷 +506</option>
+                                    <option value="+53">🇨🇺 +53</option>
+                                    <option value="+593">🇪🇨 +593</option>
+                                    <option value="+503">🇸🇻 +503</option>
+                                    <option value="+502">🇬🇹 +502</option>
+                                    <option value="+504">🇭🇳 +504</option>
+                                    <option value="+52">🇲🇽 +52</option>
+                                    <option value="+505">🇳🇮 +505</option>
+                                    <option value="+507">🇵🇦 +507</option>
+                                    <option value="+595">🇵🇾 +595</option>
+                                    <option value="+51">🇵🇪 +51</option>
+                                    <option value="+1">🇩🇴 +1</option>
+                                    <option value="+598">🇺🇾 +598</option>
+                                    <option value="+58">🇻🇪 +58</option>
+                                 </select>
+                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                              </div>
+                              <div className="relative w-3/5">
+                                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                 <input 
+                                   required type="tel" placeholder="9 11 1234..."
+                                   value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
+                                   className="w-full pl-10 pr-4 py-3 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all font-medium"
+                                 />
+                              </div>
                            </div>
                         </div>
                         
