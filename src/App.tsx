@@ -193,7 +193,7 @@ function MainApp() {
                              <HeartPulse className="w-6 h-6 text-white" />
                           </div>
                           <div className="flex-1">
-                             <h4 className="font-bold text-[15px] leading-tight">Clínica Denta</h4>
+                             <h4 className="font-bold text-[15px] leading-tight">Accesorios Deportivos</h4>
                              <p className="text-[11px] text-emerald-100">en línea</p>
                           </div>
                           <div className="flex gap-4">
