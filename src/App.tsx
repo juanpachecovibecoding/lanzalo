@@ -247,10 +247,9 @@ function MainApp() {
                              <span className="text-[10px] text-slate-500 block text-right mt-1 font-medium">10:43</span>
                           </div>
                         </div>
-                     </div>
 
                        {/* WA Input */}
-                       <div className="bg-[#f0f2f5] p-2 px-3 pb-3 flex items-center gap-2 shrink-0 z-10 relative rounded-b-[2.25rem]">
+                       <div className="bg-[#f0f2f5] p-2 px-3 pb-3 flex items-center gap-2 shrink-0 z-10 relative">
                           <div className="flex gap-2 text-slate-500 shrink-0">
                              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M11.999 14.942c2.001 0 3.531-1.53 3.531-3.531V4.35c0-2.001-1.53-3.531-3.531-3.531S8.469 2.35 8.469 4.35v7.061c0 2.001 1.53 3.531 3.53 3.531zm6.238-3.53c0 3.531-2.942 6.002-6.237 6.002s-6.237-2.471-6.237-6.002H3.761c0 4.001 3.178 7.297 7.061 7.885v3.884h2.354v-3.884c3.884-.588 7.061-3.884 7.061-7.885h-2.001z"></path></svg>
                           </div>
@@ -265,6 +264,7 @@ function MainApp() {
                   </div>
                </div>
 
+             </div>
             {/* BENEFITS */}
            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto mt-24">
                <div className="bg-slate-50 border border-slate-100 p-8 rounded-3xl transition-transform hover:-translate-y-1">
