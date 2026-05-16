@@ -275,33 +275,30 @@ export default function BookingPortal() {
                   ) : (
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {articles.map(a => (
-                           <div key={a.id} className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all">
+                           <div key={a.id} className="bg-white rounded-lg border border-transparent shadow-[0_1px_2px_0_rgba(0,0,0,0.12)] hover:shadow-[0_8px_16px_0_rgba(0,0,0,0.1)] transition-all flex flex-col group overflow-hidden cursor-pointer" style={{ borderColor: 'rgba(0,0,0,0.04)' }}>
                               {a.imageUrl ? (
-                                <div className="h-40 bg-slate-100 overflow-hidden relative">
-                                   <img src={a.imageUrl} alt={a.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                   {a.price > 0 && (
-                                     <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-lg font-bold text-slate-900 text-sm shadow-sm">
-                                        ${a.price}
-                                     </div>
-                                   )}
+                                <div className="h-48 bg-white overflow-hidden relative border-b border-slate-100 flex items-center justify-center p-3">
+                                   <img src={a.imageUrl} alt={a.name} className="w-full h-full object-contain" />
                                 </div>
                               ) : (
-                                <div className="h-32 bg-slate-50 flex items-center justify-center text-slate-300 relative">
-                                   <ImageIcon className="w-8 h-8" />
-                                   {a.price > 0 && (
-                                     <div className="absolute bottom-3 left-3 bg-white px-2.5 py-1 rounded-lg font-bold text-slate-900 text-sm border border-slate-100 shadow-sm">
-                                        ${a.price}
-                                     </div>
-                                   )}
+                                <div className="h-48 bg-slate-50 border-b border-slate-100 flex items-center justify-center text-slate-300 relative">
+                                   <ImageIcon className="w-12 h-12" />
                                 </div>
                               )}
-                              <div className="p-5 flex-1 flex flex-col">
-                                 <h4 className="font-bold text-slate-900 leading-tight mb-1">{a.name}</h4>
-                                 <p className="text-sm text-slate-500 line-clamp-2 mb-4 flex-1">{a.description}</p>
+                              <div className="p-4 flex-1 flex flex-col bg-white">
+                                 {a.price > 0 && (
+                                    <div className="mb-1 text-slate-800 text-[22px]">
+                                       $ {a.price.toLocaleString('es-AR')}
+                                    </div>
+                                 )}
+                                 {a.price > 0 && (
+                                    <p className="text-[13px] text-[#00a650] font-medium mb-1.5 flex items-center gap-1">Envío gratis <span className="font-extrabold italic">⚡ FULL</span></p>
+                                 )}
+                                 <h4 className="text-[13px] font-normal text-slate-500 leading-snug line-clamp-2 mb-2 flex-1">{a.name}</h4>
                                  {a.tags && a.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-auto pt-4 border-t border-slate-50">
+                                    <div className="flex flex-wrap gap-1 mt-auto pt-2">
                                        {a.tags.map((t: string) => (
-                                          <span key={t} className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">{t}</span>
+                                          <span key={t} className="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[10px] font-medium">{t}</span>
                                        ))}
                                     </div>
                                  )}
