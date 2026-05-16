@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Plus, Trash2, Tag, Search, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Tag, Search, Image as ImageIcon, Edit2 } from 'lucide-react';
 
 export default function ArticlesTab({ clinicId }) {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', price: '', tags: '', imageUrl: '' });
   const [saving, setSaving] = useState(false);
 
@@ -22,6 +23,24 @@ export default function ArticlesTab({ clinicId }) {
     setLoading(false);
   };
 
+  const openNewModal = () => {
+    setEditingId(null);
+    setForm({ name: '', description: '', price: '', tags: '', imageUrl: '' });
+    setShowModal(true);
+  };
+
+  const openEditModal = (article) => {
+    setEditingId(article.id);
+    setForm({
+      name: article.name || '',
+      description: article.description || '',
+      price: article.price?.toString() || '',
+      tags: article.tags?.join(', ') || '',
+      imageUrl: article.imageUrl || ''
+    });
+    setShowModal(true);
+  };
+
   const saveArticle = async () => {
     if (!form.name.trim()) return;
     if (!clinicId) {
@@ -31,17 +50,29 @@ export default function ArticlesTab({ clinicId }) {
     setSaving(true);
     try {
       const tagsArray = form.tags.split(',').map(t => t.trim()).filter(t => t);
-      await addDoc(collection(db, 'clinics', clinicId, 'articles'), {
-        storeOwnerId: clinicId,
-        name: form.name.trim(),
-        description: form.description.trim(),
-        price: form.price ? Number(form.price) : 0,
-        imageUrl: form.imageUrl.trim(),
-        tags: tagsArray,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      if (editingId) {
+        await updateDoc(doc(db, 'clinics', clinicId, 'articles', editingId), {
+          name: form.name.trim(),
+          description: form.description.trim(),
+          price: form.price ? Number(form.price) : 0,
+          imageUrl: form.imageUrl.trim(),
+          tags: tagsArray,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        await addDoc(collection(db, 'clinics', clinicId, 'articles'), {
+          storeOwnerId: clinicId,
+          name: form.name.trim(),
+          description: form.description.trim(),
+          price: form.price ? Number(form.price) : 0,
+          imageUrl: form.imageUrl.trim(),
+          tags: tagsArray,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
       setShowModal(false);
+      setEditingId(null);
       setForm({ name: '', description: '', price: '', tags: '', imageUrl: '' });
       loadArticles();
     } catch (e) {
@@ -64,7 +95,7 @@ export default function ArticlesTab({ clinicId }) {
           <h3 className="text-xl font-bold text-slate-800">Catálogo de Artículos</h3>
           <p className="text-sm text-slate-500">Gestiona los productos o servicios que ofreces.</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all shadow-md flex items-center gap-2">
+        <button onClick={openNewModal} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all shadow-md flex items-center gap-2">
           <Plus className="w-5 h-5" /> Nuevo Artículo
         </button>
       </div>
@@ -78,7 +109,7 @@ export default function ArticlesTab({ clinicId }) {
           </div>
           <h4 className="text-lg font-bold text-slate-800 mb-2">Tu catálogo está vacío</h4>
           <p className="text-slate-500 max-w-sm mx-auto mb-6">Añade tu primer artículo para poder lanzarlo y notificar a tus suscriptores.</p>
-          <button onClick={() => setShowModal(true)} className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-6 rounded-xl transition-all">
+          <button onClick={openNewModal} className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-6 rounded-xl transition-all">
             Crear Artículo
           </button>
         </div>
@@ -107,9 +138,14 @@ export default function ArticlesTab({ clinicId }) {
                       <span key={t} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">{t}</span>
                     ))}
                   </div>
-                  <button onClick={() => deleteArticle(a.id)} className="text-red-400 hover:text-red-600 p-1">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex space-x-1">
+                    <button onClick={() => openEditModal(a)} className="text-indigo-400 hover:text-indigo-600 p-1" title="Editar">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => deleteArticle(a.id)} className="text-red-400 hover:text-red-600 p-1" title="Eliminar">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -120,7 +156,7 @@ export default function ArticlesTab({ clinicId }) {
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
-            <h3 className="text-xl font-bold text-slate-900 mb-6">Nuevo Artículo</h3>
+            <h3 className="text-xl font-bold text-slate-900 mb-6">{editingId ? 'Editar Artículo' : 'Nuevo Artículo'}</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Nombre (*)</label>
