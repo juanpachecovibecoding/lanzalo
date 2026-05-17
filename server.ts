@@ -113,10 +113,11 @@ interface AppConfig {
 // In-memory store for WhatsApp clients and configs
 const waClients = new Map<string, any>();
 const waQRCodes = new Map<string, string>();
+const waPairingCodes = new Map<string, string>();
 const waStatus = new Map<string, string>();
 const waConfigs = new Map<string, AppConfig>();
 
-async function startWhatsAppBot(clinicId: string, host: string) {
+async function startWhatsAppBot(clinicId: string, host: string, pairingPhone?: string) {
   const authFolder = path.join(process.cwd(), 'wa_clients', clinicId);
   const bookingUrl = `https://${host}/reservar/${clinicId}`;
   if (!fs.existsSync(authFolder)) {
@@ -132,16 +133,29 @@ async function startWhatsAppBot(clinicId: string, host: string) {
     auth: state,
     printQRInTerminal: false,
     logger,
-    browser: Browsers.macOS('Desktop'),
+    browser: Browsers.ubuntu('Chrome'), // Baileys doc recommends Ubuntu Chrome for pairing code
     syncFullHistory: false
   });
 
   sock.ev.on('creds.update', saveCreds);
 
+  if (pairingPhone && !sock.authState.creds.registered) {
+    setTimeout(async () => {
+      try {
+        const code = await sock.requestPairingCode(pairingPhone.replace(/\D/g, ''));
+        waPairingCodes.set(clinicId, code);
+        waStatus.set(clinicId, 'PAIRING_CODE_READY');
+      } catch (err) {
+        console.error('Failed to get pairing code', err);
+        waStatus.set(clinicId, 'DISCONNECTED');
+      }
+    }, 5000);
+  }
+
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update;
     
-    if (qr) {
+    if (qr && !pairingPhone) {
       waStatus.set(clinicId, 'QR_READY');
       try {
         const qrBase64 = await QRCode.toDataURL(qr);
@@ -159,6 +173,7 @@ async function startWhatsAppBot(clinicId: string, host: string) {
         setTimeout(() => startWhatsAppBot(clinicId, host), 5000);
       } else {
         waQRCodes.delete(clinicId);
+        waPairingCodes.delete(clinicId);
         if (fs.existsSync(authFolder)) {
           fs.rmSync(authFolder, { recursive: true, force: true });
         }
@@ -167,6 +182,7 @@ async function startWhatsAppBot(clinicId: string, host: string) {
     } else if (connection === 'open') {
       waStatus.set(clinicId, 'CONNECTED');
       waQRCodes.delete(clinicId);
+      waPairingCodes.delete(clinicId);
     }
   });
 
@@ -316,13 +332,13 @@ app.get('/api/system-limits', (req, res) => {
 
 // API Routes
 app.post('/api/whatsapp/start', async (req, res) => {
-  const { clinicId } = req.body;
+  const { clinicId, pairingPhone } = req.body;
   if (!clinicId) return res.status(400).json({ error: 'clinicId is required' });
   const host = req.get('host') || 'localhost:3000';
   
   if (!waClients.has(clinicId)) {
     waStatus.set(clinicId, 'INITIALIZING');
-    await startWhatsAppBot(clinicId, host);
+    await startWhatsAppBot(clinicId, host, pairingPhone);
   }
   
   res.json({ status: waStatus.get(clinicId) });
@@ -349,10 +365,11 @@ app.get('/api/whatsapp/status/:clinicId', (req, res) => {
   const { clinicId } = req.params;
   const status = waStatus.get(clinicId) || 'DISCONNECTED';
   const qr = waQRCodes.get(clinicId) || null;
+  const pairingCode = waPairingCodes.get(clinicId) || null;
   const clinicConfig = waConfigs.get(clinicId);
   const messagesUsed = clinicConfig ? clinicConfig.messagesUsed : null;
   
-  res.json({ status, qr, messagesUsed });
+  res.json({ status, qr, pairingCode, messagesUsed });
 });
 
 app.post('/api/whatsapp/send-reminders', async (req, res) => {

@@ -50,9 +50,12 @@ const isTimeSlotBlocked = (dateStr: string, timeStr: string, clinicObj: any) => 
 export default function Dashboard({ user }: { user: User }) {
   const [clinic, setClinic] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [waStatus, setWaStatus] = useState<string>('DISCONNECTED');
   const [isSendingReminders, setIsSendingReminders] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('articulos');
+  const [pairingPhone, setPairingPhone] = useState('');
+  const [showPairingInput, setShowPairingInput] = useState(false);
 
   const handleSendReminders = async () => {
     if (waStatus !== 'CONNECTED') {
@@ -690,6 +693,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
           const data = await res.json();
           setWaStatus(data.status);
           setQrCode(data.qr);
+          setPairingCode(data.pairingCode);
           if (data.messagesUsed != null && clinic && data.messagesUsed > (clinic.messagesUsed || 0)) {
              let updates: any = { messagesUsed: data.messagesUsed, updatedAt: serverTimestamp() };
              // If limit reached, automatically deactivate bot
@@ -709,13 +713,16 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
     return () => clearInterval(interval);
   }, [user.uid, clinic, systemLimits]);
 
-  const startWhatsApp = async () => {
+  const startWhatsApp = async (phone?: string) => {
     try {
       setWaStatus('INITIALIZING');
       await fetch('/api/whatsapp/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinicId: user.uid })
+        body: JSON.stringify({ 
+          clinicId: user.uid,
+          pairingPhone: phone 
+        })
       });
     } catch (err) {
       console.error(err);
@@ -1420,32 +1427,72 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                   <div className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase ${
                     waStatus === 'CONNECTED' ? 'bg-emerald-100 text-emerald-700' : 
                     waStatus === 'QR_READY' ? 'bg-amber-100 text-amber-700' :
+                    waStatus === 'PAIRING_CODE_READY' ? 'bg-indigo-100 text-indigo-700' :
                     waStatus === 'INITIALIZING' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-700'
                   }`}>
-                    {waStatus === 'QR_READY' ? 'Esperando Escaneo' : waStatus}
+                    {waStatus === 'QR_READY' ? 'Esperando Escaneo' : waStatus === 'PAIRING_CODE_READY' ? 'Código Generado' : waStatus}
                   </div>
                 </div>
 
                 <div className="flex flex-col items-center justify-center p-8 bg-slate-50 border border-slate-200 rounded-xl mb-8 min-h-[300px]">
                   {waStatus === 'DISCONNECTED' && (
-                    <div className="text-center">
+                    <div className="text-center w-full">
                       <QrCode className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-500 mb-6 max-w-sm text-sm">
-                        Escanea el código QR desde WhatsApp &gt; Dispositivos vinculados para conectar la IA a tu línea.
+                      <p className="text-slate-500 mb-6 max-w-sm mx-auto text-sm">
+                        Conecta tu WhatsApp escaneando el QR o usando un código de vinculación.
                       </p>
-                      <button 
-                        onClick={startWhatsApp}
-                        className="px-6 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium transition-colors hover:bg-slate-800"
-                      >
-                        Generar QR de WhatsApp
-                      </button>
+                      
+                      {!showPairingInput ? (
+                        <div className="flex flex-col gap-3 max-w-xs mx-auto">
+                          <button 
+                            onClick={() => startWhatsApp()}
+                            className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold transition-all hover:bg-slate-800 shadow-md"
+                          >
+                            Generar QR de WhatsApp
+                          </button>
+                          <button 
+                            onClick={() => setShowPairingInput(true)}
+                            className="px-6 py-2 text-slate-600 rounded-xl text-sm font-semibold transition-all hover:bg-slate-100"
+                          >
+                            Vincular con número de teléfono
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="max-w-xs mx-auto">
+                          <label className="block text-left text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">Número de Teléfono</label>
+                          <div className="flex gap-2">
+                             <input 
+                               type="text" 
+                               value={pairingPhone}
+                               onChange={e => setPairingPhone(e.target.value)}
+                               placeholder="Ej: 549341000000"
+                               className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm"
+                             />
+                             <button 
+                               onClick={() => startWhatsApp(pairingPhone)}
+                               className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors"
+                             >
+                               Vincular
+                             </button>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-2 text-left px-1 italic">
+                            Usa el formato internacional sin el signo +. Ejemplo: 5493416555444
+                          </p>
+                          <button 
+                            onClick={() => setShowPairingInput(false)}
+                            className="mt-4 text-xs text-slate-400 font-medium hover:text-slate-600 transition-colors"
+                          >
+                            Volver al QR
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {waStatus === 'INITIALIZING' && (
                     <div className="text-center">
                       <div className="w-12 h-12 border-[3px] border-indigo-100 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
-                      <p className="text-slate-600 font-medium text-sm">Generando código seguro...</p>
+                      <p className="text-slate-600 font-medium text-sm">Iniciando conexión segura...</p>
                     </div>
                   )}
 
@@ -1457,6 +1504,27 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                       <p className="text-slate-600 text-sm font-medium">1. Abre WhatsApp en tu dispositivo celular.</p>
                       <p className="text-slate-500 text-xs mt-1">2. Ve a Configuración &gt; Dispositivos Vinculados.</p>
                       <p className="text-slate-500 text-xs mt-1">3. Escanea este código para iniciar sesión.</p>
+                    </div>
+                  )}
+
+                  {waStatus === 'PAIRING_CODE_READY' && pairingCode && (
+                    <div className="text-center w-full max-w-sm mx-auto">
+                       <div className="bg-white border-2 border-indigo-50 rounded-2xl p-8 shadow-sm mb-6">
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Tu Código de Vinculación</p>
+                          <div className="flex gap-2 justify-center">
+                             {pairingCode.split('').map((char, idx) => (
+                                <div key={idx} className={`w-8 h-10 md:w-10 md:h-12 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-center text-xl md:text-2xl font-black text-indigo-600 shadow-sm ${idx === 3 ? 'mr-2' : ''}`}>
+                                   {char}
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                       <div className="text-left space-y-3">
+                          <p className="text-slate-600 text-sm font-medium">1. Abre WhatsApp en tu celular.</p>
+                          <p className="text-slate-500 text-xs">2. Ve a <span className="font-bold">Dispositivos Vinculados</span> &gt; <span className="font-bold">Vincular un dispositivo</span>.</p>
+                          <p className="text-slate-500 text-xs">3. Toca en <span className="font-bold underline text-indigo-600">Vincular con el número de teléfono</span>.</p>
+                          <p className="text-slate-500 text-xs">4. Ingresa el código de 8 dígitos que ves arriba.</p>
+                       </div>
                     </div>
                   )}
 
