@@ -133,7 +133,7 @@ async function startWhatsAppBot(clinicId: string, host: string, pairingPhone?: s
     auth: state,
     printQRInTerminal: false,
     logger,
-    browser: Browsers.ubuntu('Chrome'), // Baileys doc recommends Ubuntu Chrome for pairing code
+    browser: Browsers.ubuntu('Desktop'), // Using Desktop instead of Chrome to avoid specific detection issues
     syncFullHistory: false
   });
 
@@ -212,7 +212,7 @@ async function startWhatsAppBot(clinicId: string, host: string, pairingPhone?: s
         try {
           // No special confirmation logic, just let AI handle it
 
-          const systemPrompt = clinicConfig.systemPrompt || "Eres un asistente virtual médico. Responde en español, sé sumamente cordial.";
+          const systemPrompt = clinicConfig.systemPrompt || "Eres un asistente virtual de ventas. Responde en español, sé sumamente cordial y ayuda a vender el catálogo.";
 
           await sock.presenceSubscribe(remoteJid);
           await sock.sendPresenceUpdate('composing', remoteJid);
@@ -234,7 +234,7 @@ async function startWhatsAppBot(clinicId: string, host: string, pairingPhone?: s
           };
 
           const generationConfig = {
-            systemInstruction: `Eres el agente inteligente de una marca o tienda. El nombre del Lanzador/Tienda es "${clinicConfig.name}". Tus tareas son soporte, ventas y suscripciones. Sigue estas instrucciones: ${systemPrompt}. Cuando un usuario pregunte por el catálogo, ofertas o quiera suscribirse para recibir lanzamientos, proporciónale INMEDIATAMENTE el enlace al catálogo para que pueda verlo y suscribirse: ${bookingUrl}\n\nSi el usuario te da su teléfono por algún motivo, puedes consultar si está suscripto usando la herramienta consultarSuscripcion.\n\nIMPORTANTE PARA ENLACES: Al enviar el link, envíalo como texto crudo (NO uses [texto](URL)). WhatsApp requiere que los links se envíen completos y sin envolver en otros caracteres.`,
+            systemInstruction: `Eres el agente inteligente de una marca o tienda. El nombre de la Tienda es "${clinicConfig.name}". Tus tareas son soporte, ventas y captación de clientes. Sigue estas instrucciones: ${systemPrompt}. Cuando un usuario pregunte por el catálogo, novedades o quiera suscribirse para lanzamientos, proporciónale INMEDIATAMENTE el enlace al catálogo: ${bookingUrl}\n\nSi el usuario te da su teléfono, puedes consultar si está suscripto usando la herramienta consultarSuscripcion.\n\nIMPORTANTE: Envía los links como texto crudo sin formato especial.`,
             tools: [{ functionDeclarations: [consultarSuscripcion] }]
           };
 

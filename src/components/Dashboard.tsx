@@ -65,7 +65,7 @@ export default function Dashboard({ user }: { user: User }) {
     
     const dayAppointments = appointments.filter(a => a.date === selectedDate && a.status !== 'CANCELLED');
     if (dayAppointments.length === 0) {
-      alert('No hay turnos para enviar recordatorios en este día.');
+      alert('No hay suscriptores para enviar notificaciones en este día.');
       return;
     }
 
@@ -471,7 +471,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
        setApptForm(null);
      } catch(err) {
        console.error("Error saving appointment:", err);
-       alert("Error guardando el turno.");
+       alert("Error guardando los datos.");
      }
      setSavingAppt(false);
   };
@@ -1064,7 +1064,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                  {activeTab === 'articulos' && 'Catálogo'}
                  {activeTab === 'lanzamientos' && 'Lanzamientos'}
-                 {activeTab === 'suscriptores' && 'Suscriptors'}
+                 {activeTab === 'suscriptores' && 'Suscriptores'}
                  {activeTab === 'flujos' && 'Flujos AI'}
                  {activeTab === 'configuracion' && 'WhatsApp'}
                  {activeTab === 'perfil' && 'Perfil'}
@@ -1095,8 +1095,8 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                <div className="bg-white border border-slate-100 rounded-[2rem] shadow-xl shadow-slate-200/40 overflow-hidden">
                   <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
                      <div>
-                        <h3 className="font-bold text-slate-900">Listado de Suscriptors</h3>
-                        <p className="text-sm text-slate-500">Consulta y gestiona la información de tus suscriptores.</p>
+                        <h3 className="font-bold text-slate-900">Listado de Suscriptores</h3>
+                        <p className="text-sm text-slate-500">Consulta y gestiona la información de tus clientes y suscriptores.</p>
                      </div>
                      <div className="flex gap-2">
                         <button 
@@ -1278,7 +1278,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                   </button>
                 </div>
                 <div className="p-8">
-                  <p className="text-slate-600 text-center">¿Estás seguro que deseas eliminar este suscriptor? Sus turnos y mensajes podrían quedar huérfanos.</p>
+                  <p className="text-slate-600 text-center">¿Estás seguro que deseas eliminar este suscriptor? Se perderán sus datos y mensajes.</p>
                 </div>
                 <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
                   <button 
@@ -1329,11 +1329,11 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                       value={systemPrompt}
                       onChange={(e) => setSystemPrompt(e.target.value)}
                       className="w-full flex-1 p-4 text-slate-700 focus:outline-none font-mono text-sm leading-relaxed resize-none"
-                      placeholder={`Ejemplo: Eres un vendedor estrella de la tienda ${clinic?.name}. Saluda con entusiasmo y siempre intenta cerrar la venta sin ser insistente.`}
+                      placeholder={`Ejemplo: Eres un vendedor estrella de la tienda ${clinic?.name}. Estás aquí para ayudar a los clientes con el catálogo, responder dudas sobre productos y enviarlos al link de compra cuando estén listos.`}
                     />
                   </div>
                   <p className="text-xs text-slate-500 mt-4 shrink-0">
-                    Agrega las instrucciones específicas sobre el tono de la marca ({clinic?.specialty}), promociones vigentes, o políticas de cambios y devoluciones para que el bot responda correctamente en WhatsApp.
+                    Agrega las instrucciones específicas sobre el tono de la marca (Rubro: ${clinic?.specialty}), promociones vigentes, o políticas de ventas para que el bot responda correctamente en WhatsApp.
                   </p>
                 </div>
 
@@ -1422,7 +1422,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                 <div className="flex items-center justify-between mb-8">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900">Conexión de WhatsApp</h3>
-                    <p className="text-sm text-slate-500 mt-1">Conecta tu teléfono médico</p>
+                    <p className="text-sm text-slate-500 mt-1">Conecta tu teléfono comercial</p>
                   </div>
                   <div className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase ${
                     waStatus === 'CONNECTED' ? 'bg-emerald-100 text-emerald-700' : 
@@ -1439,7 +1439,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                     <div className="text-center w-full">
                       <QrCode className="w-16 h-16 text-slate-400 mx-auto mb-4" />
                       <p className="text-slate-500 mb-6 max-w-sm mx-auto text-sm">
-                        Conecta tu WhatsApp escaneando el QR o usando un código de vinculación.
+                        Conecta tu WhatsApp escaneando el QR o usando un código de vinculación para que la IA atienda a tus clientes.
                       </p>
                       
                       {!showPairingInput ? (
@@ -1575,7 +1575,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
             <div className="max-w-2xl mx-auto space-y-8">
                <div className="bg-white border border-slate-100 rounded-[2rem] p-8 md:p-10 shadow-xl shadow-slate-200/40">
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-bold text-slate-900">Información del Lanzador</h3>
+                    <h3 className="text-lg font-bold text-slate-900">Información de la Tienda</h3>
                     {!isEditingProfile && (
                       <button 
                         onClick={() => {
@@ -1621,11 +1621,11 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                         <input type="email" value={profileForm.contactEmail} onChange={e => setProfileForm({...profileForm, contactEmail: e.target.value})} className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:bg-white" />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Nombre del Lanzador</label>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Nombre de la Tienda</label>
                         <input type="text" value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:bg-white" required />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Especialidad</label>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Rubro / Categoría</label>
                         <input type="text" value={profileForm.specialty} onChange={e => setProfileForm({...profileForm, specialty: e.target.value})} className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:bg-white" required />
                       </div>
                       <div>
@@ -2150,7 +2150,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                       </p>
                       <div className="bg-red-50 p-4 rounded-2xl border border-red-100 mt-4">
                         <p className="text-[12px] text-red-700 font-medium">
-                          Esta acción <strong>no se puede deshacer</strong> y borrará toda la información, turnos y suscriptores asociadas a esta Lanzador de forma irreversible.
+                          Esta acción <strong>no se puede deshacer</strong> y borrará toda la información, artículos y suscriptores asociados a esta Tienda de forma irreversible.
                         </p>
                       </div>
                     </div>

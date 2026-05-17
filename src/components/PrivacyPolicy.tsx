@@ -22,24 +22,24 @@ export default function PrivacyPolicy() {
           <h2 className="text-2xl font-bold text-slate-800 mt-10 mb-4">1. Información que recopilamos</h2>
           <p className="mb-4">
             Recopilamos información para brindar mejores servicios a todos nuestros usuarios. La información que recopilamos depende de cómo utiliza nuestros servicios.
-            Cuando crea una cuenta de Turnely, nos proporciona información personal que incluye su nombre, dirección de correo electrónico y detalles de su clínica.
+            Cuando crea una cuenta de Lanzalo, nos proporciona información personal que incluye su nombre, dirección de correo electrónico y detalles de su negocio.
           </p>
 
           <h2 className="text-2xl font-bold text-slate-800 mt-10 mb-4">2. Cómo utilizamos la información</h2>
           <p className="mb-4">
             Utilizamos la información recopilada para proporcionar, mantener, proteger y mejorar nuestros servicios, así como para desarrollar otros nuevos. 
-            También utilizamos esta información para ofrecerle contenido personalizado y automatizar sus respuestas y gestión de turnos mediante IA.
+            También utilizamos esta información para ofrecerle contenido personalizado y automatizar sus ventas mediante IA.
           </p>
 
           <h2 className="text-2xl font-bold text-slate-800 mt-10 mb-4">3. Seguridad de los datos</h2>
           <p className="mb-4">
-            Trabajamos arduamente para proteger a Turnely y a nuestros usuarios contra el acceso no autorizado o la alteración, divulgación o destrucción no autorizada de la información que poseemos. 
-            Nuestra plataforma está alojada en proveedores de nube de primer nivel con estándares de seguridad internacionales de grado médico y empresarial.
+            Trabajamos arduamente para proteger a Lanzalo y a nuestros usuarios contra el acceso no autorizado o la alteración, divulgación o destrucción no autorizada de la información que poseemos. 
+            Nuestra plataforma está alojada en proveedores de nube de primer nivel con estándares de seguridad internacionales de grado industrial y empresarial.
           </p>
 
           <h2 className="text-2xl font-bold text-slate-800 mt-10 mb-4">4. Compartir información</h2>
           <p className="mb-4">
-            No compartimos información personal con empresas, organizaciones ni particulares que no pertenezcan a Turnely, salvo en los siguientes casos: 
+            No compartimos información personal con empresas, organizaciones ni particulares que no pertenezcan a Lanzalo, salvo en los siguientes casos: 
             con su consentimiento, para el procesamiento externo por parte de terceros de confianza (como servicios en la nube para ejecutar los modelos de inteligencia artificial) o por motivos legales.
           </p>
           

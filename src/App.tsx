@@ -518,13 +518,13 @@ function MainApp() {
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans text-slate-800">
            <form onSubmit={createClinic} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 max-w-md w-full">
               <div className="mb-8">
-                 <h2 className="text-2xl font-bold text-slate-900 mb-2">Configura tu Lanzamiento</h2>
+                 <h2 className="text-2xl font-bold text-slate-900 mb-2">Configura tu Tienda</h2>
                  <p className="text-sm text-slate-500">Ingresa los detalles básicos para preparar tu panel de notificaciones.</p>
               </div>
               
               <div className="space-y-5">
                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1">Nombre del Lanzador</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Nombre de la Tienda</label>
                     <input 
                       type="text" 
                       required

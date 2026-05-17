@@ -27,8 +27,8 @@ export default function TermsOfService() {
 
           <h2 className="text-2xl font-bold text-slate-800 mt-10 mb-4">2. Descripción del servicio</h2>
           <p className="mb-4">
-            Turnely es una plataforma SaaS que proporciona automatización de respuestas a través de IA y gestión de turnos para clínicas y consultorios médicos.
-            Nuestro servicio incluye respuestas automatizadas a pacientes, agendamiento de citas, y un entorno seguro para las llamadas y mensajes.
+            Lanzalo es una plataforma SaaS que proporciona automatización de ventas a través de IA y gestión de lanzamientos para tiendas y emprendedores.
+            Nuestro servicio incluye respuestas automatizadas a clientes, catálogo digital de artículos, y un entorno seguro para la gestión de productos.
           </p>
 
           <h2 className="text-2xl font-bold text-slate-800 mt-10 mb-4">3. Cuentas de usuario</h2>
