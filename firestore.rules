@@ -7,14 +7,14 @@ service cloud.firestore {
     }
 
     function isAdmin() { return request.auth != null && request.auth.token.email == 'portadordelsello@gmail.com'; }
-    function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128; }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
 
     function isValidClinic(data) {
-      return data.keys().hasAll(['ownerId', 'name', 'specialty', 'plan', 'createdAt', 'updatedAt', 'botActive', 'whatsappSessionStatus']) &&
-             data.keys().size() >= 8 && data.keys().size() <= 15 &&
+      return data.keys().hasAll(['ownerId', 'name', 'specialty', 'plan', 'createdAt', 'updatedAt']) &&
+             data.keys().size() >= 6 && data.keys().size() <= 20 &&
              data.ownerId is string && data.ownerId.size() <= 128 && (data.ownerId == request.auth.uid || isAdmin()) &&
              data.name is string && data.name.size() <= 100 &&
              data.specialty is string && data.specialty.size() <= 100 &&
@@ -22,14 +22,16 @@ service cloud.firestore {
              (!('trialEndsAt' in data) || data.trialEndsAt is number) &&
              data.createdAt is timestamp &&
              data.updatedAt is timestamp &&
-             data.botActive is bool &&
-             data.whatsappSessionStatus in ['DISCONNECTED', 'CONNECTED', 'QR_READY'] &&
-             (!('systemPrompt' in data) || (data.systemPrompt is string && data.systemPrompt.size() <= 5000)) &&
+             (!('botActive' in data) || data.botActive is bool) &&
+             (!('whatsappSessionStatus' in data) || data.whatsappSessionStatus in ['DISCONNECTED', 'CONNECTED', 'QR_READY']) &&
+             (!('systemPrompt' in data) || (data.systemPrompt is string && data.systemPrompt.size() <= 10000)) &&
              (!('messagesUsed' in data) || data.messagesUsed is number) &&
-             (!('whatsappNumber' in data) || (data.whatsappNumber is string && data.whatsappNumber.size() <= 20)) &&
+             (!('whatsappNumber' in data) || (data.whatsappNumber is string && data.whatsappNumber.size() <= 100)) &&
              (!('blockedDays' in data) || data.blockedDays is list) &&
              (!('contactEmail' in data) || (data.contactEmail is string && data.contactEmail.size() <= 100)) &&
-             (!('logoUrl' in data) || (data.logoUrl is string && data.logoUrl.size() <= 1000));
+             (!('logoUrl' in data) || (data.logoUrl is string && data.logoUrl.size() <= 2000)) &&
+             (!('coverUrl' in data) || (data.coverUrl is string && data.coverUrl.size() <= 2000)) &&
+             (!('theme' in data) || (data.theme is string && data.theme.size() <= 100));
     }
 
     function isValidPatient(data) {
@@ -99,20 +101,21 @@ service cloud.firestore {
 
     match /clinics/{clinicId} {
       allow get: if isValidId(clinicId); 
-      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow list: if isAdmin();
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
       
       allow create: if isSignedIn() && isValidId(clinicId) && request.auth.uid == clinicId &&
                        isValidClinic(incoming()) &&
                        incoming().createdAt == request.time &&
                        incoming().updatedAt == request.time;
                        
-      allow update: if (isSignedIn() && isValidId(clinicId) && (clinicId == request.auth.uid || isAdmin()) &&
+                      allow update: if (isSignedIn() && isValidId(clinicId) && (clinicId == request.auth.uid || isAdmin()) &&
                        isValidClinic(incoming()) &&
                        incoming().ownerId == existing().ownerId &&
                        incoming().createdAt == existing().createdAt &&
                        incoming().updatedAt == request.time &&
                        (
-                         (incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'name', 'specialty', 'plan', 'trialEndsAt', 'botActive', 'whatsappSessionStatus', 'systemPrompt', 'messagesUsed', 'whatsappNumber', 'blockedDays', 'contactEmail', 'logoUrl'])) || isAdmin()
+                         (incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'name', 'specialty', 'plan', 'trialEndsAt', 'botActive', 'whatsappSessionStatus', 'systemPrompt', 'messagesUsed', 'whatsappNumber', 'blockedDays', 'contactEmail', 'logoUrl', 'coverUrl', 'theme'])) || isAdmin()
                        )) || (
                          isValidId(clinicId) &&
                          incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'messagesUsed']) &&

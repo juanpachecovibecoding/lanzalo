@@ -827,8 +827,10 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
         updatedAt: serverTimestamp()
       });
       setIsEditingProfile(false);
-    } catch (err) {
+      alert('Perfil actualizado con éxito');
+    } catch (err: any) {
       console.error(err);
+      alert('Error al actualizar perfil: ' + (err.message || 'Permisos insuficientes'));
     }
   };
 
@@ -843,8 +845,10 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
         updatedAt: serverTimestamp()
       });
       setIsEditingAppearance(false);
-    } catch (err) {
+      alert('Apariencia actualizada con éxito');
+    } catch (err: any) {
       console.error(err);
+      alert('Error al actualizar apariencia: ' + (err.message || 'Permisos insuficientes'));
     }
   };
 
