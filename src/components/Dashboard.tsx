@@ -1193,16 +1193,6 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Etiquetas (separadas por coma)</label>
-                      <input 
-                        type="text"
-                        placeholder="Ej: Ofertas, Verano, Vip"
-                        value={patientForm.tags ? patientForm.tags.join(', ') : ''}
-                        onChange={e => setPatientForm({...patientForm, tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag)})}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
-                      />
-                    </div>
-                    <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Número de WhatsApp</label>
                       <div className="flex gap-2">
                         <select
@@ -1225,24 +1215,6 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                           className="w-2/3 flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                         />
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
-                      <input 
-                        type="email"
-                        value={patientForm.email}
-                        onChange={e => setPatientForm({...patientForm, email: e.target.value})}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Dirección</label>
-                      <input 
-                        type="text"
-                        value={patientForm.address}
-                        onChange={e => setPatientForm({...patientForm, address: e.target.value})}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
-                      />
                     </div>
 
                   </div>
