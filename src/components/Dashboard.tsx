@@ -596,7 +596,16 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
       const lines = text.split('\n');
       const subscribersToAdd: { name: string; phone: string }[] = [];
 
-      for (let i = 1; i < lines.length; i++) {
+      const startIdx = (lines[0] && (
+        lines[0].toLowerCase().includes('nombre') || 
+        lines[0].toLowerCase().includes('name') || 
+        lines[0].toLowerCase().includes('whatsapp') || 
+        lines[0].toLowerCase().includes('tel')
+      )) ? 1 : 0;
+
+      let skippedCount = 0;
+
+      for (let i = startIdx; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
 
@@ -618,11 +627,20 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
         parts.push(currentPart.trim());
 
         if (parts.length >= 2) {
-          const name = parts[0].replace(/^"(.*)"$/, '$1').trim();
-          const phone = parts[1].replace(/^"(.*)"$/, '$1').trim();
+          let name = parts[0].replace(/^"(.*)"$/, '$1').trim();
+          let phone = parts[1].replace(/^"(.*)"$/, '$1').trim();
+          
+          name = name.substring(0, 100);
+          phone = phone.replace(/[^0-9+\s-]/g, '').trim();
+          phone = phone.substring(0, 20);
+          
           if (name && phone) {
             subscribersToAdd.push({ name, phone });
+          } else {
+            skippedCount++;
           }
+        } else {
+          skippedCount++;
         }
       }
 
@@ -631,7 +649,8 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
         return;
       }
 
-      if (!confirm(`Se encontraron ${subscribersToAdd.length} suscriptores. ¿Deseas cargarlos automáticamente?`)) {
+      const skippedMsg = skippedCount > 0 ? ` (se omitieron ${skippedCount} filas inválidas o vacías)` : '';
+      if (!confirm(`Se encontraron ${subscribersToAdd.length} suscriptores${skippedMsg}. ¿Deseas cargarlos automáticamente?`)) {
         e.target.value = '';
         return;
       }
