@@ -504,7 +504,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
           phone: cleanPhone,
           email: patient.email || '',
           address: patient.address || '',
-          
+          dni: patient.dni || '',
        });
     } else {
        setPatientForm({
@@ -513,7 +513,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
           phone: '',
           email: '',
           address: '',
-          
+          dni: '',
        });
     }
   };
@@ -531,7 +531,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                phone: fullPhone,
                email: patientForm.email || '',
                address: patientForm.address || '',
-               
+               dni: patientForm.dni || '',
                updatedAt: serverTimestamp()
            });
        } else {
@@ -542,7 +542,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                phone: fullPhone,
                email: patientForm.email || '',
                address: patientForm.address || '',
-               
+               dni: patientForm.dni || '',
                createdAt: serverTimestamp(),
                updatedAt: serverTimestamp()
            });
@@ -650,6 +650,7 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
               clinicOwnerId: user.uid,
               name: sub.name,
               phone: sub.phone,
+              dni: '',
               tags: [],
               email: '',
               address: '',
