@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { User, signOut } from 'firebase/auth';
-import { doc, onSnapshot, updateDoc, deleteDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, deleteDoc, serverTimestamp, collection, addDoc, writeBatch } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { LogOut, QrCode, MessageCircle, Settings, Calendar, User as UserIcon, Bot, ArrowRight, ShieldCheck, CreditCard, Lock, Menu, X, HelpCircle, Send, Phone, PhoneOff, Mic, Rocket } from 'lucide-react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
@@ -49,6 +49,7 @@ const isTimeSlotBlocked = (dateStr: string, timeStr: string, clinicObj: any) => 
 
 export default function Dashboard({ user }: { user: User }) {
   const [clinic, setClinic] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [waStatus, setWaStatus] = useState<string>('DISCONNECTED');
@@ -562,6 +563,113 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
       } catch(e) {
          console.error("Error deleting patient:", e);
       }
+  };
+
+  const handleTriggerImport = () => {
+    fileInputRef.current?.click();
+  };
+
+  const downloadSampleCSV = () => {
+    const csvContent = "\ufeffNombre,WhatsApp\n"
+      + "Juan Perez,+54 9 341 0000000\n"
+      + "Maria Gomez,+54 9 342 0000000";
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "lanzalo_suscriptores_ejemplo.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = evt.target?.result as string;
+      if (!text) return;
+
+      const lines = text.split('\n');
+      const subscribersToAdd: { name: string; phone: string }[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const parts: string[] = [];
+        let currentPart = '';
+        let inQuotes = false;
+        
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            parts.push(currentPart.trim());
+            currentPart = '';
+          } else {
+            currentPart += char;
+          }
+        }
+        parts.push(currentPart.trim());
+
+        if (parts.length >= 2) {
+          const name = parts[0].replace(/^"(.*)"$/, '$1').trim();
+          const phone = parts[1].replace(/^"(.*)"$/, '$1').trim();
+          if (name && phone) {
+            subscribersToAdd.push({ name, phone });
+          }
+        }
+      }
+
+      if (subscribersToAdd.length === 0) {
+        alert("No se encontraron registros válidos en el archivo CSV. Asegúrate de usar las columnas 'Nombre' y 'WhatsApp'.");
+        return;
+      }
+
+      if (!confirm(`Se encontraron ${subscribersToAdd.length} suscriptores. ¿Deseas cargarlos automáticamente?`)) {
+        e.target.value = '';
+        return;
+      }
+
+      try {
+        const chunkSize = 400;
+        let count = 0;
+        for (let i = 0; i < subscribersToAdd.length; i += chunkSize) {
+          const chunk = subscribersToAdd.slice(i, i + chunkSize);
+          const batch = writeBatch(db);
+          const patientsCol = collection(db, 'clinics', user.uid, 'patients');
+          
+          chunk.forEach(sub => {
+            const newDocRef = doc(patientsCol);
+            batch.set(newDocRef, {
+              clinicOwnerId: user.uid,
+              name: sub.name,
+              phone: sub.phone,
+              tags: [],
+              email: '',
+              address: '',
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+          });
+          
+          await batch.commit();
+          count += chunk.length;
+        }
+        alert(`${count} suscriptores importados con éxito.`);
+      } catch (err: any) {
+        console.error("Error al importar suscriptores:", err);
+        alert("Ocurrió un error al importar los datos: " + err.message);
+      } finally {
+        e.target.value = '';
+      }
+    };
+    reader.readAsText(file);
   };
 
   const confirmDeleteClinic = async () => {
@@ -1098,16 +1206,35 @@ Responde de manera amable, útil, clara y en español. Nunca divagues ni reveles
                         <h3 className="font-bold text-slate-900">Listado de Suscriptores</h3>
                         <p className="text-sm text-slate-500">Consulta y gestiona la información de tus clientes y suscriptores.</p>
                      </div>
-                     <div className="flex gap-2">
+                     <div className="flex gap-2 flex-wrap">
                         <button 
                            onClick={() => handleOpenPatientModal()}
                            className="px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors"
                         >
                            + Nuevo Suscriptor
                         </button>
+                        <button 
+                           onClick={handleTriggerImport}
+                           className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
+                        >
+                           Importar Datos
+                        </button>
+                        <button 
+                           onClick={downloadSampleCSV}
+                           className="px-4 py-2 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
+                        >
+                           Archivo de ejemplo
+                        </button>
                         <button className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
                            Exportar Datos
                         </button>
+                        <input 
+                           type="file" 
+                           ref={fileInputRef} 
+                           onChange={handleImportCSV} 
+                           accept=".csv" 
+                           className="hidden" 
+                        />
                      </div>
                   </div>
                   <div className="overflow-x-auto">
